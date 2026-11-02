@@ -779,6 +779,8 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
   /* 畳んだ内容を押して開いたとき（scripts/disclosure.ts が details に m-opening を付ける）と「さらに表示」で出した行（scripts/show-more.ts が m-in を付ける）は、すっと出す。
      高さは動かさない（中身は一度に場所を取り、見た目だけを変える）。# の行き先・印刷で開いたときは動かさない */
   details.m-opening[open] > :not(summary), .m-in { animation: m-drop 0.18s ease-out; }
+  /* マインドマップ（pages/mokuji/mindmap.astro）の枝を押して開いたときは、子の枝を左（開いた枝の側）からすっと出す（scripts/mindmap.ts が li に m-opening を付ける） */
+  .mm-li.m-opening > ul { animation: m-slide 0.2s ease-out; }
   /* ページ内の目次が上に貼り付いたときに出す、何のページかの1行（scripts/toc.ts の stuck）。場所は一度に取り（本文には重ねるのでずれない）、中身をすっと出す */
   .toc.stuck .toc-head-in { animation: m-drop 0.18s ease-out; }
   /* いいね（components/Like.astro）: 押すとハートがポンとはね、お礼のポップアップが尾のほうからふくらんで出る。
@@ -803,6 +805,7 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
 @keyframes m-pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 @keyframes m-fade { from { opacity: 0; } }
 @keyframes m-drop { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes m-slide { from { opacity: 0; transform: translateX(-12px); } }
 @keyframes m-arc { from { stroke-dasharray: 0 400; } }
 @keyframes m-stamp { from { scale: 1.7; opacity: 0; } 55% { scale: 0.93; opacity: 1; } }
 @keyframes m-draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }

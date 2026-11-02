@@ -8,9 +8,7 @@
 //    （全角・半角と表記ゆれは lib/search.ts でそろえる）。当たった行とその親の行・当たった行の中だけを見せ、当たった行の親を開いて、当たった字に印を付ける。
 //    成果指標は、PC の幅では施策の行の名前の横にあるので（同じ指標の .qn が2つある。data-qk）、施策の行が当たったことにする。
 //    言葉を消すと、さがす前の開き方に戻す。言葉は URL の q に残す（ほかの一覧の絞り込みと同じ）
-//  - 出す指標: [data-tree-show="木の id"] のボタンで、チェックボックスの吹き出しを開け閉めする。選んだ種類（主要指標・成果指標・活動指標）を
-//    木の data-show に入れ、CSS で選んでいない種類を隠す（pages/mokuji.astro）。隠した指標はキーワードでもさがさない。
-//    吹き出しは、ボタンをもう一度押す・外を押す・Esc（ボタンにフォーカスを戻す）・フォーカスが外へ出る、で閉じる
+//  - 出す指標: scripts/tree-show.ts。選んでいない種類は CSS で隠し（pages/mokuji.astro）、キーワードでもさがさない
 //  - 戻る・進む: bfcache から戻したときは、言葉の欄と木を URL の q にそろえる。bfcache を使わずに読み直したときは目次を描き直すので、
 //    離れるときに開き方・出す指標・スクロールの位置を history.state に残し、描いたあとに戻す
 //  - キーボード: 木（role="tree"）では Tab は1回だけ止まり（前にいた行。はじめは最初の行）、↑ ↓ で見えている行を移り、Home・End で最初・最後の行へ。
@@ -25,6 +23,7 @@ import type { TreeData, TreeKihon, TreeLink, TreeShisaku, TreeTenkai, TreeVision
 import { getJsonOr } from './fetch-json.ts';
 import { hashId } from './hash.ts';
 import { bump, reveal } from './motion.ts';
+import { treeShow } from './tree-show.ts';
 
 // ---------------------------------------------------------------- 描く
 
@@ -105,44 +104,10 @@ async function init(tree: HTMLElement) {
   const wide = matchMedia('(min-width: 760px)');
 
   // ---------------------------------------------------------------- 出す指標
-  // データを待たずに動かす。選び直したときに言葉が入っていれば、さがし直す（描いたあとだけ）
-  const show = document.querySelector<HTMLElement>(`[data-tree-show="${tree.id}"]`);
-  const showBtn = show?.querySelector<HTMLButtonElement>('button[aria-controls]');
-  const showPop = showBtn ? document.getElementById(showBtn.getAttribute('aria-controls')!) : null;
-  const showNow = show?.querySelector<HTMLElement>('[data-tree-show-now]');
-  const boxes = [...(show?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])];
+  // データを待たずに動かす（scripts/tree-show.ts）。選び直したときに言葉が入っていれば、さがし直す（描いたあとだけ）
   let ready = false;
-  const shows = new Set<string>();
-  const applyShow = () => {
-    shows.clear();
-    for (const b of boxes) if (b.checked) shows.add(b.value);
-    tree.dataset.show = [...shows].join(' ');
-    if (showNow) showNow.textContent = boxes.filter((b) => b.checked).map((b) => b.dataset.short).join('・') || '出さない';
-    if (ready && input?.value.trim()) run();
-  };
-  const isOpen = () => showBtn?.getAttribute('aria-expanded') === 'true';
-  const openShow = (open: boolean, refocus = false) => {
-    if (!showBtn || !showPop || isOpen() === open) return;
-    showPop.hidden = !open;
-    showBtn.setAttribute('aria-expanded', String(open));
-    if (refocus) showBtn.focus();
-  };
-  for (const b of boxes) b.addEventListener('change', applyShow);
-  showBtn?.addEventListener('click', () => openShow(!isOpen()));
-  show?.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || !isOpen()) return;
-    e.preventDefault();
-    openShow(false, true);
-  });
-  // フォーカスが吹き出しとボタンの外へ移ったら閉じる（押してもフォーカスの移らないブラウザ（Safari）があるので、移り先の無いときは外を押したかで決める）
-  show?.addEventListener('focusout', (e) => {
-    const to = e.relatedTarget;
-    if (to instanceof Node && !show.contains(to)) openShow(false);
-  });
-  document.addEventListener('click', (e) => {
-    if (show && !show.contains(e.target as Node)) openShow(false);
-  });
-  applyShow();
+  const show = treeShow(tree, () => { if (ready && input?.value.trim()) run(); });
+  const shows = show.shows;
 
   // 言葉の欄は、データを待たずに URL の q で埋める。届くまでに打った言葉も URL に残し、描いたあとにさがす
   let timer = 0;
@@ -180,10 +145,7 @@ async function init(tree: HTMLElement) {
   tree.innerHTML = data.visions.map(visionRow).join('');
   const nodes = [...tree.querySelectorAll<HTMLDetailsElement>('details[data-level]')];
   const saved = savedOf(src);
-  if (saved) {
-    for (const b of boxes) b.checked = saved.show.includes(b.value);
-    applyShow();
-  }
+  if (saved) show.set(saved.show);
   const openSet = saved ? new Set(saved.open) : null;
   nodes.forEach((d, i) => { d.open = openSet ? openSet.has(i) : Number(d.dataset.level) < startDepth; });
   tree.setAttribute('role', 'tree');

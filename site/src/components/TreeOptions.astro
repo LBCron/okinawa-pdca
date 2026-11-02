@@ -1,0 +1,73 @@
+---
+// 計画の木（目次 /mokuji/・マインドマップ /mokuji/mindmap/）の頭の「開く深さ」と「指標」。木の id（tree）の form の中に置く。
+// 開く深さは scripts/tree.ts・scripts/mindmap.ts が、指標の吹き出しは scripts/tree-show.ts が動かす
+interface Props {
+  tree: string; // 木の id
+  start: number; // はじめに選んである深さ（DEPTHS の何番目か）
+}
+const { tree, start } = Astro.props;
+// 「開く深さ」の選択肢。i 番目は、i より上の階層（将来像が 0）を開き、その下は閉じる
+const DEPTHS = ['将来像だけ', '基本施策まで', '施策展開まで', '施策まで', '主な取組まで'];
+// 出す指標の選択肢（key は木の data-show・行の data-ind の値。short はボタンに出す短い名前）
+const SHOW = [
+  { key: 'shuyou', name: '主要指標', short: '主要', on: true },
+  { key: 'seika', name: '成果指標', short: '成果', on: true },
+  { key: 'katsudou', name: '活動指標', short: '活動', on: false },
+];
+---
+<label class="tree-depth">開く深さ
+  {/* 1つずつ開け閉めして、どの深さにもそろっていないときは「ばらばら」（選べない）にする */}
+  <select data-tree-depth aria-controls={tree} autocomplete="off">
+    {DEPTHS.map((d, i) => <option value={String(i)} selected={i === start}>{d}</option>)}
+    <option value="" disabled hidden>ばらばら</option>
+  </select>
+</label>
+{/* 押すとチェックボックスの吹き出しを開く。ボタンの文字は選んでいる種類（scripts/tree-show.ts が書き換える） */}
+<div class="tree-show" data-tree-show={tree}>
+  <span class="fgroup-label" id={`${tree}-show-label`}>指標</span>
+  <button type="button" class="tree-show-btn" aria-expanded="false" aria-controls={`${tree}-show-pop`} aria-labelledby={`${tree}-show-label ${tree}-show-now`}>
+    <span id={`${tree}-show-now`} data-tree-show-now>{SHOW.filter((x) => x.on).map((x) => x.short).join('・')}</span><svg class="chev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" /></svg>
+  </button>
+  <fieldset class="tree-show-pop" id={`${tree}-show-pop`} hidden>
+    <legend>出す指標</legend>
+    {SHOW.map((x) => (
+      <label><input type="checkbox" value={x.key} data-short={x.short} checked={x.on} autocomplete="off" />{x.name}</label>
+    ))}
+  </fieldset>
+</div>
+
+<style is:global>
+  .tree-depth { flex: none; }
+  /* 出す指標のボタンと、押すと出るチェックボックスの吹き出し。ボタンは並びのセレクトと同じ高さにする */
+  .tree-show { position: relative; flex: none; display: grid; gap: 4px; }
+  .tree-show-btn {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 12px 4px 14px;
+    font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper); border: 2px solid var(--line); border-radius: 12px; cursor: pointer;
+  }
+  .tree-show-btn:hover, .tree-show-btn[aria-expanded='true'] { background: var(--sky); }
+  .tree-show-pop {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 45; margin: 0; min-width: 100%; width: max-content; display: grid;
+    background: var(--paper); color: var(--ink); border: 2px solid var(--line); border-radius: 12px; box-shadow: 3px 3px 0 var(--shadow); padding: 6px;
+  }
+  .tree-show-pop[hidden] { display: none; }
+  .tree-show-pop legend { float: left; width: 100%; padding: 2px 8px 2px; font-size: 0.75rem; font-weight: 700; color: var(--ink-2); }
+  .filters .tree-show-pop label {
+    display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px 0 8px;
+    font-size: 0.875rem; font-weight: 400; color: var(--ink); border-radius: 8px; cursor: pointer;
+  }
+  .tree-show-pop label:hover { background: var(--sky); }
+  /* チェックの箱。ブラウザの箱は使わず、指標の札と同じ細めの線の角丸にする。選ぶと青く塗って小さくずらした影を付け、白い ✓ を描く */
+  .tree-show-pop input {
+    appearance: none; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin: 0;
+    background: var(--paper); border: 1.5px solid var(--line); border-radius: 5px; cursor: pointer;
+  }
+  .tree-show-pop input::before { content: ''; width: 7px; height: 3.5px; border: solid var(--pop-ink); border-width: 0 0 2px 2px; rotate: -45deg; translate: 0 -1px; scale: 0; }
+  .tree-show-pop input:checked { background: var(--pop); border-color: var(--pop); box-shadow: 1.5px 1.5px 0 var(--shadow); }
+  .tree-show-pop input:checked::before { scale: 1; }
+  .tree-show-pop input:focus-visible { outline: 3px solid var(--pop); outline-offset: 2px; }
+  @media (prefers-reduced-motion: no-preference) {
+    /* 選んだ・外した手ごたえ。✓ は少しはねて出る */
+    .tree-show-pop input { transition: background-color 0.12s ease-out, box-shadow 0.12s ease-out; }
+    .tree-show-pop input::before { transition: scale 0.18s cubic-bezier(0.3, 1.6, 0.6, 1); }
+  }
+</style>

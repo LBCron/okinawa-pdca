@@ -853,6 +853,22 @@ export function getPlanTree(): PlanTreeVision[] {
     kihon: kihon.filter((k) => k.shouraizou === vision.id).map((k) => ({ kihon: k, shuyou: shuyou.filter((r) => r.kihon_id === k.id), tenkai: tenkaiOf(k.id) })),
   }));
 }
+// 計画の木の段ごとの数（計画の目次とマインドマップのページの頭の文と説明文）。主な取組は延べ件数、主要指標は概要版の数え方（getPlanTree）
+export function planTreeCounts() {
+  const tree = getPlanTree();
+  const kihon = tree.flatMap((v) => v.kihon);
+  const tenkai = kihon.flatMap((k) => k.tenkai);
+  const shisaku = tenkai.flatMap((t) => t.shisaku);
+  return {
+    vision: tree.length,
+    kihon: kihon.length,
+    tenkai: tenkai.length,
+    shisaku: shisaku.length,
+    torikumi: shisaku.reduce((n, s) => n + s.torikumi.length, 0),
+    shuyou: kihon.reduce((n, k) => n + k.shuyou.length, 0),
+    seika: shisaku.reduce((n, s) => n + s.seika.length, 0),
+  };
+}
 
 // 最新の報告の名前が同じ取組（別の施策のものを含む）
 const groupsByKey = once(() => Map.groupBy(getTorikumiGroups(), (x) => sameKey(x.key)));

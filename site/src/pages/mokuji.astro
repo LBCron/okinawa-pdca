@@ -2,17 +2,19 @@
 import Base from '../layouts/Base.astro';
 import Term from '../components/Term.astro';
 import ExtLink from '../components/ExtLink.astro';
-import { LATEST, yearLong, getPlanTree } from '../lib/data.ts';
+import { LATEST, yearLong, planTreeCounts } from '../lib/data.ts';
 import { TREE_DATA_FALLBACK, treeDataPath } from '../lib/tree-data.ts';
 import { LINKS } from '../lib/links.ts';
 import { fmt } from '../lib/format.ts';
-
-// 計画の目次。将来像 → 基本施策 → 施策展開 → 施策 → 主な取組を、開け閉めできる木（<details> の入れ子）で並べる。
+import TreeOptions from '../components/TreeOptions.astro';
+import TreeViews from '../components/TreeViews.astro';
+// 計画の目次。同じ木を枝分かれの図で見せるのはマインドマップ（pages/mokuji/mindmap.astro。components/TreeViews.astro で行き来する）。
+// 将来像 → 基本施策 → 施策展開 → 施策 → 主な取組を、開け閉めできる木（<details> の入れ子）で並べる。
 // 木は HTML に書かず、ブラウザのスクリプト（scripts/tree.ts）が JSON（lib/tree-data.ts。名前とリンクだけ）から描く（約2,500行あり、HTML に書くと
 // 750KB ほどになって、戻る・進むで読み直したときに、読み終えるまで絞り込む前の目次と空の欄が見えていたため）。
 // 基本施策には主要指標、施策には成果指標を付ける。PC の幅では名前の横に並べ、スマホでは開いた中に主な取組より先に並べる（同じ指標を2か所に書き、幅で片方だけを出す）。
 // 主な取組には活動指標を付ける（取組の名前の右。どの幅でも同じ）。
-// どの指標を出すかは、頭の「指標」のボタンで開くチェックボックスで選ぶ（SHOW。はじめは主要指標と成果指標だけ）。木の data-show に選んだ種類が入り、ほかの種類（data-ind）を CSS で隠す。
+// どの指標を出すかは、頭の「指標」のボタンで開くチェックボックスで選ぶ（components/TreeOptions.astro の SHOW。はじめは主要指標と成果指標だけ）。木の data-show に選んだ種類が入り、ほかの種類（data-ind）を CSS で隠す。
 // 指標は名前だけで、値や達成率は出さない（形を見るページにし、良い・悪いの一覧にしない）。
 // 名前はそれぞれのページへのリンクで、▶ の丸（summary）を押すと開け閉めする。
 // summary の中にリンクを置くと押せるものが入れ子になるので、名前は summary の外に置き、summary は丸だけにする。施策展開にはページが無いので、名前の行を押しても開け閉めする。
@@ -21,55 +23,23 @@ import { fmt } from '../lib/format.ts';
 // 閉じている行にだけ、すぐ下に並ぶものの数（「取組 6・成果指標 2」）を名前の後ろに出す（開いたら下に並ぶので出さない。CSS で切り替える。指標の数は、指標を名前の横に出す PC では出さない）。
 // 頭の「開く深さ」（セレクト）は、選んだ階層まで一度に開く。はじめは将来像だけを開いて、基本施策まで見せる（はじめに選んである深さ）。
 // キーワードは、施策・取組・成果指標（活動指標を出しているときは活動指標も）の名前（.qn）を部分一致でさがし、当たった行とその親だけを残して開く。
-// 開く深さ・指標・キーワードは小さく1行に並べ、キーワードを後ろに置く（キーワードの欄から Tab 1回で木に入れるように。スマホではキーワードだけ次の行にする）
-const tree = getPlanTree();
-const kihonAll = tree.flatMap((v) => v.kihon);
-const tenkaiAll = kihonAll.flatMap((k) => k.tenkai);
-const shisakuAll = tenkaiAll.flatMap((t) => t.shisaku);
-const total = (xs: { length: number }[]) => xs.reduce((n, x) => n + x.length, 0);
-const nTorikumi = total(shisakuAll.map((s) => s.torikumi));
-const nShuyou = total(kihonAll.map((k) => k.shuyou));
-const nSeika = total(shisakuAll.map((s) => s.seika));
-// 「開く深さ」の選択肢。i 番目は、i より上の階層（details の data-level が i 未満）を開き、その下は閉じる
-const DEPTHS = ['将来像だけ', '基本施策まで', '施策展開まで', '施策まで', '主な取組まで'];
+// 開く深さ・指標（components/TreeOptions.astro）・キーワードは小さく1行に並べ、キーワードを後ろに置く（キーワードの欄から Tab 1回で木に入れるように。スマホではキーワードだけ次の行にする）
+const n = planTreeCounts();
+// はじめに選んである「開く深さ」（components/TreeOptions.astro の DEPTHS の何番目か）
 const START = 1;
-// 出す指標の選択肢（key は木の data-show・行の data-ind の値。short はボタンに出す短い名前）
-const SHOW = [
-  { key: 'shuyou', name: '主要指標', short: '主要', on: true },
-  { key: 'seika', name: '成果指標', short: '成果', on: true },
-  { key: 'katsudou', name: '活動指標', short: '活動', on: false },
-];
 // 目次のデータ。名前に中身のハッシュが付く（lib/tree-data.ts）
 const dataPath = treeDataPath();
 ---
-<Base title="計画の目次" description={`新・沖縄21世紀ビジョンの5つの将来像・${kihonAll.length}の基本施策・${tenkaiAll.length}の施策展開・${shisakuAll.length}の施策・${fmt(nTorikumi)}件の主な取組（${yearLong(LATEST)}）を、主要指標・成果指標と一緒に、開け閉めできる目次の形で一覧できます。`}>
+<Base title="計画の目次" description={`新・沖縄21世紀ビジョンの${n.vision}つの将来像・${n.kihon}の基本施策・${n.tenkai}の施策展開・${n.shisaku}の施策・${fmt(n.torikumi)}件の主な取組（${yearLong(LATEST)}）を、主要指標・成果指標と一緒に、開け閉めできる目次の形で一覧できます。`}>
   {/* 目次のデータを、ページのスクリプトが届くのを待たずに読み始める（scripts/tree.ts の fetch がこれを使う。crossorigin は fetch の既定に合わせる） */}
   <link slot="head" rel="preload" href={dataPath} as="fetch" crossorigin="anonymous" />
   <h1>計画の目次</h1>
   <p class="secondary lead">
-    「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>の{tree.length}つの<Term word="将来像" />から、{kihonAll.length}の<Term word="基本施策" />、{tenkaiAll.length}の<Term word="施策展開" />、{shisakuAll.length}の<Term word="施策" />、{fmt(nTorikumi)}件の<Term word="主な取組" />までを、成果をはかる<Term word="主要指標" />（{nShuyou}）・<Term word="成果指標" />（{nSeika}）と一緒にたどれます。
+    「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>の{n.vision}つの<Term word="将来像" />から、{n.kihon}の<Term word="基本施策" />、{n.tenkai}の<Term word="施策展開" />、{n.shisaku}の<Term word="施策" />、{fmt(n.torikumi)}件の<Term word="主な取組" />までを、成果をはかる<Term word="主要指標" />（{n.shuyou}）・<Term word="成果指標" />（{n.seika}）と一緒にたどれます。
   </p>
+  <TreeViews current="mokuji" />
   <form class="filters tree-search" role="search" aria-label="目次の中をさがす" data-tree-search="plan-tree">
-    <label class="tree-depth">開く深さ
-      {/* 1つずつ開け閉めして、どの深さにもそろっていないときは「ばらばら」（選べない）にする（scripts/tree.ts） */}
-      <select data-tree-depth aria-controls="plan-tree" autocomplete="off">
-        {DEPTHS.map((d, i) => <option value={String(i)} selected={i === START}>{d}</option>)}
-        <option value="" disabled hidden>ばらばら</option>
-      </select>
-    </label>
-    {/* 押すとチェックボックスの吹き出しを開く。ボタンの文字は選んでいる種類（scripts/tree.ts が書き換える） */}
-    <div class="tree-show" data-tree-show="plan-tree">
-      <span class="fgroup-label" id="tree-show-label">指標</span>
-      <button type="button" class="tree-show-btn" aria-expanded="false" aria-controls="tree-show-pop" aria-labelledby="tree-show-label tree-show-now">
-        <span id="tree-show-now" data-tree-show-now>{SHOW.filter((x) => x.on).map((x) => x.short).join('・')}</span><svg class="chev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" /></svg>
-      </button>
-      <fieldset class="tree-show-pop" id="tree-show-pop" hidden>
-        <legend>目次に出す指標</legend>
-        {SHOW.map((x) => (
-          <label><input type="checkbox" value={x.key} data-short={x.short} checked={x.on} autocomplete="off" />{x.name}</label>
-        ))}
-      </fieldset>
-    </div>
+    <TreeOptions tree="plan-tree" start={START} />
     <label class="q">キーワード
       <input type="search" name="q" placeholder="施策・取組・成果指標の名前（例: 離島）" />
     </label>
@@ -78,7 +48,7 @@ const dataPath = treeDataPath();
   <div class="tree-box sticker">
     <p class="tree-root"><span class="tw" aria-hidden="true"></span><span>新・沖縄21世紀ビジョン基本計画</span><span class="key-hint tree-hint" aria-hidden="true">矢印キーで行を移り、開け閉めできます</span></p>
     <p class="tree-msg small secondary" role="status">目次を読み込んでいます…</p>
-    <ul class="tree" id="plan-tree" data-tree data-show={SHOW.filter((x) => x.on).map((x) => x.key).join(' ')} aria-label="計画の目次。上下の矢印キーで行を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}></ul>
+    <ul class="tree" id="plan-tree" data-tree aria-label="計画の目次。上下の矢印キーで行を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}></ul>
     <noscript><p class="small">目次の表示には JavaScript が必要です。<a href="/shisaku/">施策をさがす</a>・<a href="/future/">5つの将来像</a>から、それぞれの施策・取組を見られます。</p></noscript>
   </div>
   <p class="small secondary">施策・指標・主な取組は{yearLong(LATEST)}の報告にあるものです。主要指標は、県の概要版の数え方（男女別などを分けて数える）です。主な取組は延べ件数で、いくつかの施策に載る取組は、それぞれの施策の下に出ます。</p>
@@ -90,7 +60,6 @@ const dataPath = treeDataPath();
 
   /* 開く深さとキーワード。小さく1行に並べる（箱に入れない）。スクリプトでしか動かないので、スクリプトが動くとき（html.js）だけ出す */
   .filters.tree-search { flex-wrap: nowrap; gap: 10px; margin: 16px 0 0; }
-  .tree-search .tree-depth { flex: none; }
   .tree-search .q { flex: 1 1 auto; min-width: 0; }
   :root:not(.js) .tree-search { display: none; }
   @media (max-width: 640px) {
@@ -98,33 +67,6 @@ const dataPath = treeDataPath();
     .tree-search .q { flex-basis: 100%; }
   }
 
-  /* 出す指標のボタンと、押すと出るチェックボックスの吹き出し。ボタンは並びのセレクトと同じ高さにする */
-  .tree-show { position: relative; flex: none; display: grid; gap: 4px; }
-  .tree-show-btn {
-    display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 12px 4px 14px;
-    font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper); border: 2px solid var(--line); border-radius: 12px; cursor: pointer;
-  }
-  .tree-show-btn:hover, .tree-show-btn[aria-expanded='true'] { background: var(--sky); }
-  .tree-show-pop {
-    position: absolute; top: calc(100% + 6px); left: 0; z-index: 45; margin: 0; min-width: 100%; width: max-content; display: grid;
-    background: var(--paper); color: var(--ink); border: 2px solid var(--line); border-radius: 12px; box-shadow: 3px 3px 0 var(--shadow); padding: 6px;
-  }
-  .tree-show-pop[hidden] { display: none; }
-  .tree-show-pop legend { float: left; width: 100%; padding: 2px 8px 2px; font-size: 0.75rem; font-weight: 700; color: var(--ink-2); }
-  .filters .tree-show-pop label {
-    display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px 0 8px;
-    font-size: 0.875rem; font-weight: 400; color: var(--ink); border-radius: 8px; cursor: pointer;
-  }
-  .tree-show-pop label:hover { background: var(--sky); }
-  /* チェックの箱。ブラウザの箱は使わず、指標の札と同じ細めの線の角丸にする。選ぶと青く塗って小さくずらした影を付け、白い ✓ を描く */
-  .tree-show-pop input {
-    appearance: none; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin: 0;
-    background: var(--paper); border: 1.5px solid var(--line); border-radius: 5px; cursor: pointer;
-  }
-  .tree-show-pop input::before { content: ''; width: 7px; height: 3.5px; border: solid var(--pop-ink); border-width: 0 0 2px 2px; rotate: -45deg; translate: 0 -1px; scale: 0; }
-  .tree-show-pop input:checked { background: var(--pop); border-color: var(--pop); box-shadow: 1.5px 1.5px 0 var(--shadow); }
-  .tree-show-pop input:checked::before { scale: 1; }
-  .tree-show-pop input:focus-visible { outline: 3px solid var(--pop); outline-offset: 2px; }
   p.tree-hits { margin: 10px 0 0; }
   /* 件数の文字が無いときは場所を取らない（件数を読み上げるため、p（aria-live）は出したままにする） */
   p.tree-hits:has(> span:empty) { margin: 0; }
@@ -243,10 +185,5 @@ const dataPath = treeDataPath();
     .sticker.tree-box { padding: 12px 12px 14px 10px; }
     /* 根の行の右に入らないので、箱の上の線に重ねる（箱の上の余白 12px と線の太さの半分だけ上へ） */
     .tree-box .tree-hint { top: -13px; }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    /* 選んだ・外した手ごたえ。✓ は少しはねて出る */
-    .tree-show-pop input { transition: background-color 0.12s ease-out, box-shadow 0.12s ease-out; }
-    .tree-show-pop input::before { transition: scale 0.18s cubic-bezier(0.3, 1.6, 0.6, 1); }
   }
 </style>

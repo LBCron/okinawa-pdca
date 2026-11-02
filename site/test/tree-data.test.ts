@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { localNo, treeDataHash, treeDataJson, treeDataPath, type TreeData } from '../src/lib/tree-data.ts';
-import { getPlanTree } from '../src/lib/data.ts';
+import { getPlanTree, planTreeCounts } from '../src/lib/data.ts';
 
 const data = () => JSON.parse(treeDataJson()) as TreeData;
 
@@ -48,4 +48,20 @@ test('取組の活動指標は、総括報告書の欄の名前（空なら部�
     if (g.latest.indicator) assert.equal(tori[i][3], g.latest.indicator, g.href);
   });
   assert.deepEqual(tori.filter(([, , , act]) => !act).map(([, , href]) => href), []);
+});
+
+test('planTreeCounts: 計画の木の段ごとの数は、目次のデータの数と同じ', () => {
+  const d = data();
+  const kihon = d.visions.flatMap((v) => v.kihon);
+  const tenkai = kihon.flatMap((k) => k.tenkai);
+  const shisaku = tenkai.flatMap((t) => t.shisaku);
+  assert.deepEqual(planTreeCounts(), {
+    vision: d.visions.length,
+    kihon: kihon.length,
+    tenkai: tenkai.length,
+    shisaku: shisaku.length,
+    torikumi: shisaku.flatMap((s) => s.torikumi).length,
+    shuyou: kihon.flatMap((k) => k.shuyou).length,
+    seika: shisaku.flatMap((s) => s.seika).length,
+  });
 });
