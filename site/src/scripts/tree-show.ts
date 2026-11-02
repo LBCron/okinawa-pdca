@@ -1,4 +1,4 @@
-// 計画の木（目次・樹形図）の「指標」（components/TreeOptions.astro）。目次・樹形図のスクリプト（scripts/tree.ts・scripts/jukeizu.ts）から使う。
+// 計画の木（目次・ツリー）の「指標」（components/TreeOptions.astro）。目次・ツリーのスクリプト（scripts/tree.ts・scripts/tree-map.ts）から使う。
 // [data-tree-show="木の id"] のボタンで、チェックボックスの吹き出しを開け閉めする。選んだ種類（主要指標・成果指標・活動指標）を
 // 木の data-show に入れ、それぞれのページの CSS が選んでいない種類を隠す。選び直すたびに changed を呼ぶ。
 // 吹き出しは、ボタンをもう一度押す・外を押す・Esc（ボタンにフォーカスを戻す）・フォーカスが外へ出る、で閉じる

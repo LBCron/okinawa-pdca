@@ -1,6 +1,6 @@
-// 計画の樹形図（/mokuji/jukeizu/。pages/mokuji/jukeizu.astro）。
-//  - 描く: [data-jukeizu] の data-src（計画の目次と同じ JSON。読めなければ data-fallback の控え）を読み、枝を描く（データの形は lib/tree-data.ts）。
-//    描く HTML の形と見た目の決まりは pages/mokuji/jukeizu.astro の頭の説明と CSS
+// 計画ツリー（/mokuji/tree/。pages/mokuji/tree.astro）。
+//  - 描く: [data-tree-map] の data-src（計画の目次と同じ JSON。読めなければ data-fallback の控え）を読み、枝を描く（データの形は lib/tree-data.ts）。
+//    描く HTML の形と見た目の決まりは pages/mokuji/tree.astro の頭の説明と CSS
 //  - 左右: 将来像を報告書の順に、前を根の右・後ろを根の左に分ける（split）。左の側の枝は、子を左に並べる（CSS で左右を入れ替える）
 //  - 線: 開いている枝の枠の外側の縁から、子の枝の枠の内側の縁へ（左の側は左右が逆）、SVG の曲線を引く。図の大きさが変わるたび（開け閉め・出す指標・画面の幅・字の読み込み）に引き直す
 //  - 開け閉め: 丸・施策展開の枝・名前の外を押したとき、キーボード、開く深さ。押して開け閉めしたときは、押した枝が画面の同じ高さに残るように
@@ -9,6 +9,9 @@
 //  - 開く深さ（select[data-tree-depth]）・出す指標（scripts/tree-show.ts）・戻る・進む・# の行き先・キーボードは、計画の目次（scripts/tree.ts）と同じ。
 //    キーワードでさがすのは目次だけ
 //  - マウスでは、図の地（枝の外）をつかんで、図を上下左右に動かせる
+//  - 縮尺: 図（.mm-row）を transform: scale で見た目だけ縮め・広げ、器（.mm-zoom）の大きさを縮めた図の大きさにしてスクロールの範囲を合わせる。
+//    枝の並べ方と線の座標は縮尺に関係なく等倍で決まる（offsetLeft・offsetTop は transform に左右されない）。
+//    縮尺を変えても、見ていた所（ボタンでは見えている所の真ん中、Ctrl ＋ホイールではマウスの所）が画面の同じ場所に残るように、スクロールを合わせる
 import { esc } from '../lib/html.ts';
 import type { TreeData, TreeKihon, TreeLink, TreeShisaku, TreeTenkai, TreeVision } from '../lib/tree-data.ts';
 import { getJsonOr } from './fetch-json.ts';
@@ -87,14 +90,14 @@ function split(visions: TreeVision[]) {
 
 // ---------------------------------------------------------------- 読み込み
 
-// 離れるときに残す、開き方・出す指標・スクロールの位置（history.state の jukeizu）。src は描いたデータで、データが変わったら（公開し直したら）使わない
-interface Saved { src: string; open: number[]; show: string[]; x: number; y: number }
+// 離れるときに残す、開き方・出す指標・スクロールの位置（history.state の treeMap）。src は描いたデータで、データが変わったら（公開し直したら）使わない
+interface Saved { src: string; open: number[]; show: string[]; x: number; y: number; scale: number }
 const savedOf = (src: string): Saved | null => {
-  const s = (history.state as { jukeizu?: Saved } | null)?.jukeizu;
+  const s = (history.state as { treeMap?: Saved } | null)?.treeMap;
   return s && s.src === src ? s : null;
 };
 
-for (const tree of document.querySelectorAll<HTMLElement>('[data-jukeizu]')) void init(tree);
+for (const tree of document.querySelectorAll<HTMLElement>('[data-tree-map]')) void init(tree);
 
 async function init(tree: HTMLElement) {
   const box = tree.closest<HTMLElement>('.mm-box')!;
@@ -103,6 +106,7 @@ async function init(tree: HTMLElement) {
   const stage = box.querySelector<HTMLElement>('.mm-row')!;
   const svg = box.querySelector<SVGSVGElement>('svg.mm-lines')!;
   const rootBox = box.querySelector<HTMLElement>('.mm-root')!;
+  const sizer = box.querySelector<HTMLElement>('.mm-zoom')!;
   const depth = document.querySelector<HTMLSelectElement>(`select[data-tree-depth][aria-controls="${tree.id}"]`);
 
   // 出す指標。データを待たずに動かす。選び直すと枝の列の高さが変わるので、線を引き直す（描いたあとだけ）
@@ -115,7 +119,7 @@ async function init(tree: HTMLElement) {
     data = await getJsonOr<TreeData>(src, tree.dataset.fallback!);
   } catch {
     tree.removeAttribute('aria-busy');
-    if (msg) msg.textContent = '樹形図を読み込めませんでした。時間をおいて、ページを再読み込みしてください。';
+    if (msg) msg.textContent = 'ツリーを読み込めませんでした。時間をおいて、ページを再読み込みしてください。';
     return;
   }
   // 左右の枝の並びは、根の後ろに右・左の順に置く（読み上げの順を将来像の順にする。左の側は CSS の order で根の左に出す）
@@ -183,7 +187,7 @@ async function init(tree: HTMLElement) {
       const mx = (x1 + x2) / 2;
       out.push(`<path class="${cls}" d="M${r1(x1)} ${r1(y1)}C${r1(mx)} ${r1(y1)} ${r1(mx)} ${r1(y2)} ${r1(x2)} ${r1(y2)}"/>`);
     };
-    // 線の太さは、計画から将来像へ（l0）・将来像から基本施策へ（l1）を太くする（pages/mokuji/jukeizu.astro の CSS）
+    // 線の太さは、計画から将来像へ（l0）・将来像から基本施策へ（l1）を太くする（pages/mokuji/tree.astro の CSS）
     for (const r of roots) curve(rootBox, r.box, 'l0', r.left);
     const walk = (rs: Row[]) => {
       for (const r of rs) {
@@ -195,13 +199,67 @@ async function init(tree: HTMLElement) {
     walk(roots);
     svg.innerHTML = out.join('');
   };
-  // 図の大きさが変わったら（画面の幅・字の読み込みなど）引き直す。一度にたくさん変わっても1回だけ
+  // ---------------------------------------------------------------- 縮尺
+  const MIN = 0.3;
+  const MAX = 1.5;
+  // 縮小・拡大のボタンで移る段
+  const STEPS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.25, 1.5];
+  let scale = 1;
+  const zoomUi = document.querySelector<HTMLElement>(`[data-zoom-for="${tree.id}"]`);
+  const zbtn = (k: string) => zoomUi?.querySelector<HTMLButtonElement>(`[data-zoom="${k}"]`) ?? null;
+  const zoomNow = zoomUi?.querySelector<HTMLElement>('[data-zoom-now]');
+  // 器の大きさを、縮めた図の大きさにする
+  const fitSizer = () => {
+    sizer.style.width = `${stage.offsetWidth * scale}px`;
+    sizer.style.height = `${stage.offsetHeight * scale}px`;
+  };
+  // 縮尺を s にする。x・y（画面の上の場所）にあった図の所が、変えたあとも同じ場所に残るように、箱とページのスクロールを合わせる
+  const zoomTo = (s: number, x?: number, y?: number) => {
+    s = Math.min(MAX, Math.max(MIN, Math.round(s * 1000) / 1000));
+    const view = scroller.getBoundingClientRect();
+    const fx = x ?? view.left + scroller.clientWidth / 2;
+    const fy = y ?? (Math.max(view.top, 0) + Math.min(view.bottom, innerHeight)) / 2;
+    const z = sizer.getBoundingClientRect();
+    const cx = (fx - z.left) / scale;
+    const cy = (fy - z.top) / scale;
+    scale = s;
+    stage.style.setProperty('--s', String(s));
+    fitSizer();
+    const z2 = sizer.getBoundingClientRect();
+    scroller.scrollLeft += z2.left + cx * s - fx;
+    window.scrollBy({ top: z2.top + cy * s - fy, behavior: 'instant' });
+    if (zoomNow) zoomNow.textContent = `${Math.round(s * 100)}%`;
+    const out = zbtn('out');
+    const inn = zbtn('in');
+    if (out) out.disabled = s <= MIN;
+    if (inn) inn.disabled = s >= MAX;
+  };
+  zbtn('out')?.addEventListener('click', () => zoomTo(STEPS.findLast((v) => v < scale - 0.001) ?? MIN));
+  zbtn('in')?.addEventListener('click', () => zoomTo(STEPS.find((v) => v > scale + 0.001) ?? MAX));
+  zbtn('reset')?.addEventListener('click', () => zoomTo(1));
+  // 全体: 図の全体が、箱の幅と画面の高さ（頭の余白を除く）に収まる縮尺にし（等倍より大きくはしない）、図の頭を画面の上にそろえて根を真ん中に置く
+  zbtn('fit')?.addEventListener('click', () => {
+    zoomTo(Math.min(1, scroller.clientWidth / stage.offsetWidth, (innerHeight - 32) / stage.offsetHeight));
+    window.scrollBy({ top: scroller.getBoundingClientRect().top - 16, behavior: 'instant' });
+    center();
+  });
+  // Ctrl ＋ホイール（トラックパッドのピンチを含む）では、マウスの所を中心に縮尺を変える。ほかのホイールはページのスクロールのまま
+  scroller.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    // ピンチは小さな量が続けて届き、マウスのホイールは1目盛りで大きな量が届くので、1回に動かす量に上限を付ける（1目盛りでおよそ2割）
+    const d = Math.max(-20, Math.min(20, e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY));
+    zoomTo(scale * Math.exp(-d * 0.01), e.clientX, e.clientY);
+  }, { passive: false });
+
+  // 図の大きさが変わったら（開け閉め・画面の幅・字の読み込みなど）、器の大きさを合わせて線を引き直す。一度にたくさん変わっても1回だけ
   let queued = false;
   const later = () => {
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
+      fitSizer();
       draw();
     });
   };
@@ -231,9 +289,10 @@ async function init(tree: HTMLElement) {
   const sync = () => {
     if (depth) depth.value = String(depths.find((n) => nodes.every((r) => r.open === opensAt(n)(r))) ?? '');
   };
-  // 根を箱の横の真ん中に置く（図が箱より広いとき。はじめと、開く深さを選んだとき）
+  // 根を箱の横の真ん中に置く（図が箱より広いとき。はじめと、開く深さ・全体を選んだとき）。縮めた図の上の場所で測る
   const center = () => {
-    scroller.scrollLeft = at(rootBox).x + rootBox.offsetWidth / 2 - scroller.clientWidth / 2;
+    const r = rootBox.getBoundingClientRect();
+    scroller.scrollLeft += r.left + r.width / 2 - (scroller.getBoundingClientRect().left + scroller.clientWidth / 2);
   };
   // 押して・キーボードで開け閉めする。押した枝が画面の同じ場所に残るようにページと箱のスクロールを合わせ
   // （左の側を開くと、図が左に広がって根と右の側も右へずれるため）、開いた子が箱の外にはみ出すときは箱を横にすべらせる
@@ -242,6 +301,7 @@ async function init(tree: HTMLElement) {
     const before = r.box.getBoundingClientRect();
     setOpen(r, open);
     if (open) reveal([r.li], 'm-opening');
+    fitSizer();
     const after = r.box.getBoundingClientRect();
     if (after.left !== before.left) scroller.scrollLeft += after.left - before.left;
     if (after.top !== before.top) window.scrollBy({ top: after.top - before.top, behavior: 'instant' });
@@ -336,6 +396,7 @@ async function init(tree: HTMLElement) {
     if (!depth.value) return;
     const open = opensAt(Number(depth.value));
     for (const r of nodes) setOpen(r, open(r));
+    fitSizer();
     draw();
     center();
   });
@@ -362,7 +423,7 @@ async function init(tree: HTMLElement) {
   scroller.addEventListener('pointercancel', release);
 
   // ---------------------------------------------------------------- はじめの開き方
-  // はじめに選んである深さまで開く（pages/mokuji/jukeizu.astro の START。読み直したときにブラウザが戻した選択は使わない）。
+  // はじめに選んである深さまで開く（pages/mokuji/tree.astro の START。読み直したときにブラウザが戻した選択は使わない）。
   // bfcache を使わずに戻ったときは、離れたときの開き方・出す指標にする
   const startDepth = Number([...(depth?.options ?? [])].find((o) => o.defaultSelected)?.value ?? 0);
   const saved = savedOf(src);
@@ -371,6 +432,7 @@ async function init(tree: HTMLElement) {
   nodes.forEach((r, i) => setOpen(r, openSet ? openSet.has(i) : opensAt(startDepth)(r)));
   ready = true;
   sync();
+  fitSizer();
   draw();
   tree.removeAttribute('aria-busy');
   if (msg) msg.hidden = true;
@@ -378,10 +440,11 @@ async function init(tree: HTMLElement) {
   void document.fonts?.ready.then(later);
 
   if (saved) {
+    zoomTo(saved.scale);
     scroller.scrollLeft = saved.x;
     window.scrollTo(0, saved.y);
   } else {
-    // # の行き先（/mokuji/jukeizu/#s-1-1-a-1 など）が図の中にあれば、親を開いてそこへ動く
+    // # の行き先（/mokuji/tree/#s-1-1-a-1 など）が図の中にあれば、親を開いてそこへ動く
     const id = hashId();
     const target = id ? document.getElementById(id) : null;
     const r = target ? rowOf.get(target) : undefined;
@@ -389,6 +452,7 @@ async function init(tree: HTMLElement) {
       for (let p = r.parent; p; p = p.parent) setOpen(p, true);
       point(r.item);
       sync();
+      fitSizer();
       draw();
       r.box.scrollIntoView({ block: 'start', inline: 'center' });
     } else center();
@@ -396,7 +460,7 @@ async function init(tree: HTMLElement) {
 
   // 離れるときに、開き方とスクロールの位置を残す
   window.addEventListener('pagehide', () => {
-    const state: Saved = { src, open: nodes.flatMap((r, i) => (r.open ? [i] : [])), show: [...show.shows], x: scroller.scrollLeft, y: window.scrollY };
-    history.replaceState({ ...(history.state as object | null), jukeizu: state }, '');
+    const state: Saved = { src, open: nodes.flatMap((r, i) => (r.open ? [i] : [])), show: [...show.shows], x: scroller.scrollLeft, y: window.scrollY, scale };
+    history.replaceState({ ...(history.state as object | null), treeMap: state }, '');
   });
 }

@@ -8,7 +8,7 @@ import { LINKS } from '../lib/links.ts';
 import { fmt } from '../lib/format.ts';
 import TreeOptions from '../components/TreeOptions.astro';
 import TreeViews from '../components/TreeViews.astro';
-// 計画の目次。同じ木を枝分かれの図で見せるのは樹形図（pages/mokuji/jukeizu.astro。components/TreeViews.astro で行き来する）。
+// 計画の目次。同じ木を枝分かれの図で見せるのはツリー（pages/mokuji/tree.astro。components/TreeViews.astro で行き来する）。
 // 将来像 → 基本施策 → 施策展開 → 施策 → 主な取組を、開け閉めできる木（<details> の入れ子）で並べる。
 // 木は HTML に書かず、ブラウザのスクリプト（scripts/tree.ts）が JSON（lib/tree-data.ts。名前とリンクだけ）から描く（約2,500行あり、HTML に書くと
 // 750KB ほどになって、戻る・進むで読み直したときに、読み終えるまで絞り込む前の目次と空の欄が見えていたため）。

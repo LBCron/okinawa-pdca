@@ -9,21 +9,22 @@ import { TREE_DATA_FALLBACK, treeDataPath } from '../../lib/tree-data.ts';
 import { LINKS } from '../../lib/links.ts';
 import { fmt } from '../../lib/format.ts';
 
-// 計画の樹形図。計画の目次（pages/mokuji.astro）と同じ木（将来像 → 基本施策 → 施策展開 → 施策 → 主な取組）を、
-// 真ん中の基本計画から左右へ枝分かれする図で見せる。データも目次と同じ JSON（lib/tree-data.ts）で、ブラウザのスクリプト（scripts/jukeizu.ts）が描く。
+// 計画ツリー。計画の目次（pages/mokuji.astro）と同じ木（将来像 → 基本施策 → 施策展開 → 施策 → 主な取組）を、
+// 真ん中の基本計画から左右へ枝分かれする図で見せる。データも目次と同じ JSON（lib/tree-data.ts）で、ブラウザのスクリプト（scripts/tree-map.ts）が描く。
 // 横に広がる図なので、ページの幅の上限を外し（Base の wide）、図は箱（ステッカー）に入れずに、画面の幅いっぱいの白い地に置く。
 // - 指標: 主要指標は基本施策の、成果指標は施策の、活動指標は主な取組の、枝の枠のすぐ下（同じ列）に並べる（子の列には置かない）。
 //   計画の3つの段（docs/design.md の1章）とその物差しを一緒に見せ、枝をたどると段ごとの物差しが続いて見えることを、このページの見どころにする。
 //   指標どうしは線で結ばない（県が決めていない結び付きになるため）。値や達成率も出さない（形を見るページにし、良い・悪いの一覧にしない）。
 //   どの指標を出すかは目次と同じく選べ（components/TreeOptions.astro）、はじめは3つとも出す。
-// - 左右の分け方: 将来像を報告書の順に、前を右・後ろを左に分ける。どこで分けるかは、左右の施策の数がいちばん近くなる所（scripts/jukeizu.ts）。
+// - 左右の分け方: 将来像を報告書の順に、前を右・後ろを左に分ける。どこで分けるかは、左右の施策の数がいちばん近くなる所（scripts/tree-map.ts）。
 //   どちらの側も上から順に並べる（読み上げ・キーボードの順も 1〜5 のまま。左の側は CSS の order で根の左に置く）。
 // - 並べ方: 行（li）を横の flex にして、枝の列（.mm-g。枠と指標）の外側（右の側は右、左の側は左）に子の並び（ul。縦の flex）を置き、
 //   枝の列を子の並びの上下の真ん中に置く。列の幅を階層ごとに決めて、同じ階層の枝を縦の列にそろえる。
-//   枝と子を結ぶ線は、描いたあとの枝の枠の場所から SVG の曲線で引く（scripts/jukeizu.ts）。
+//   枝と子を結ぶ線は、描いたあとの枝の枠の場所から SVG の曲線で引く（scripts/tree-map.ts）。
 // - 枝の枠の外側の丸を押すと開け閉めする。閉じているときは丸にすぐ下の数を、開いているときは「−」を出す。
 //   名前はそれぞれのページへのリンクで、施策展開（ページが無い）は枠のどこを押しても開け閉めする。ほかの枝も、名前の外を押すと開け閉めする。
 // - 図が画面より広いときは、横にすべらせる（マウスでは地をつかんで動かせる）。はじめは根を真ん中に置く。
+// - 縮尺を変えられる（頭のボタンと、図の上で Ctrl ＋ホイール。トラックパッドのピンチも Ctrl ＋ホイールになるブラウザではそれで）。
 //   開け閉めしても押した枝が画面の同じ場所に残るように、スクロールを合わせる。
 // - キーボードと読み上げでは、目次と同じく木（role="tree"）として動かす。
 // はじめに選んである「開く深さ」（components/TreeOptions.astro の DEPTHS の何番目か）。将来像までを出し、計画から5つに分かれる形を最初に見せる
@@ -32,43 +33,69 @@ const n = planTreeCounts();
 // 目次と同じデータ。名前に中身のハッシュが付く（lib/tree-data.ts）
 const dataPath = treeDataPath();
 ---
-<Base wide title="計画の樹形図" description={`新・沖縄21世紀ビジョン基本計画から、${n.vision}つの将来像・${n.kihon}の基本施策・${n.tenkai}の施策展開・${n.shisaku}の施策・${fmt(n.torikumi)}件の主な取組（${yearLong(LATEST)}）へ枝分かれする樹形図。基本施策には主要指標、施策には成果指標、取組には活動指標を並べ、段ごとの物差しを枝をたどって見られます。`}>
+<Base wide title="計画ツリー" description={`新・沖縄21世紀ビジョン基本計画から、${n.vision}つの将来像・${n.kihon}の基本施策・${n.tenkai}の施策展開・${n.shisaku}の施策・${fmt(n.torikumi)}件の主な取組（${yearLong(LATEST)}）へ枝分かれするツリー。基本施策には主要指標、施策には成果指標、取組には活動指標を並べ、段ごとの物差しを枝をたどって見られます。`}>
   {/* 図のデータを、ページのスクリプトが届くのを待たずに読み始める（目次と同じファイルなので、目次を見たあとはキャッシュから読む） */}
   <link slot="head" rel="preload" href={dataPath} as="fetch" crossorigin="anonymous" />
-  <h1>計画の樹形図</h1>
+  <h1>計画ツリー</h1>
   <p class="secondary lead mm-lead">
     「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>の基本計画が、{n.vision}つの<Term word="将来像" />から、{n.kihon}の<Term word="基本施策" />、{n.tenkai}の<Term word="施策展開" />、{n.shisaku}の<Term word="施策" />、{fmt(n.torikumi)}件の<Term word="主な取組" />へと枝分かれする形です。基本施策には<Term word="主要指標" />（{n.shuyou}）、施策には<Term word="成果指標" />（{n.seika}）、主な取組には<Term word="活動指標" />を並べているので、枝をたどると、計画の段ごとに何をはかっているかが続けて見られます。
   </p>
-  <TreeViews current="jukeizu" />
+  <TreeViews current="tree" />
   <div class="filters mm-opts">
-    <TreeOptions tree="plan-jukeizu" start={START} show={['shuyou', 'seika', 'katsudou']} />
+    <TreeOptions tree="plan-tree-map" start={START} show={['shuyou', 'seika', 'katsudou']} />
+    {/* 縮尺。縮小・拡大は決まった段（scripts/tree-map.ts の STEPS）で変え、「全体」は図の全体が画面に収まる縮尺にする */}
+    <div class="mm-zoom-ui" role="group" aria-labelledby="mm-zoom-label" data-zoom-for="plan-tree-map">
+      <span class="fgroup-label" id="mm-zoom-label">縮尺</span>
+      <div class="mm-zbtns">
+        <button type="button" data-zoom="out" aria-label="縮小"><span aria-hidden="true">−</span></button>
+        <output class="mm-znow" data-zoom-now aria-live="polite">100%</output>
+        <button type="button" data-zoom="in" aria-label="拡大"><span aria-hidden="true">＋</span></button>
+        <button type="button" class="mm-zword" data-zoom="fit">全体</button>
+        <button type="button" class="mm-zword" data-zoom="reset">等倍</button>
+      </div>
+    </div>
   </div>
   <div class="mm-box">
     <span class="key-hint mm-hint" aria-hidden="true">矢印キーで枝を移り、開け閉めできます</span>
-    <p class="mm-msg small secondary" role="status">樹形図を読み込んでいます…</p>
+    <p class="mm-msg small secondary" role="status">ツリーを読み込んでいます…</p>
     <div class="mm-scroll">
+      {/* 縮尺の器（.mm-zoom）。図（.mm-row）は縮尺で見た目だけを縮め・広げ、器の大きさを縮めた図の大きさにして、スクロールの範囲を合わせる（scripts/tree-map.ts） */}
+      <div class="mm-zoom">
       {/* 木（role="tree" はスクリプトが描いてから付ける）。左右の枝の並び（ul.mm-side）は、根の後ろにスクリプトが足す */}
-      <div class="mm-row mm" id="plan-jukeizu" data-jukeizu aria-label="計画の樹形図。新・沖縄21世紀ビジョン基本計画から枝分かれします。上下の矢印キーで枝を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}>
+      <div class="mm-row mm" id="plan-tree-map" data-tree-map aria-label="計画ツリー。新・沖縄21世紀ビジョン基本計画から枝分かれします。上下の矢印キーで枝を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}>
         <svg class="mm-lines" aria-hidden="true" focusable="false"></svg>
         <p class="mm-root" aria-hidden="true">新・沖縄21世紀ビジョン基本計画</p>
       </div>
+      </div>
     </div>
-    <noscript><p class="small mm-nojs">樹形図の表示には JavaScript が必要です。<a href="/shisaku/">施策をさがす</a>・<a href="/future/">5つの将来像</a>から、それぞれの施策・取組を見られます。</p></noscript>
+    <noscript><p class="small mm-nojs">ツリーの表示には JavaScript が必要です。<a href="/shisaku/">施策をさがす</a>・<a href="/future/">5つの将来像</a>から、それぞれの施策・取組を見られます。</p></noscript>
   </div>
   <p class="small secondary mm-note">施策・指標・主な取組は{yearLong(LATEST)}の報告にあるものです。主要指標は、県の概要版の数え方（男女別などを分けて数える）です。主な取組は延べ件数で、いくつかの施策に載る取組は、それぞれの施策の下に出ます。</p>
 </Base>
 
 <style is:global>
-  /* 樹形図の見た目。枝はスクリプト（scripts/jukeizu.ts）が描くので、ページの <style>（scoped）では当たらない。.mm-box の下に書いた全体の CSS にする */
+  /* ツリーの見た目。枝はスクリプト（scripts/tree-map.ts）が描くので、ページの <style>（scoped）では当たらない。.mm-box の下に書いた全体の CSS にする */
 
   /* 頭の文は、画面いっぱいに広げると読みにくいので、ほかのページの本文の幅にとどめる */
   .mm-lead, .mm-note { max-width: 1008px; }
   /* 開く深さと指標。小さく1行に並べる（箱に入れない）。スクリプトでしか動かないので、スクリプトが動くとき（html.js）だけ出す */
   .filters.mm-opts { flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
   :root:not(.js) .mm-opts { display: none; }
+  /* 縮尺のボタン。1つの枠の中に、縮小・いまの縮尺・拡大・全体・等倍を並べる（高さは並びのセレクトと同じ） */
+  .mm-zoom-ui { display: grid; gap: 4px; }
+  .mm-zbtns { display: inline-flex; align-items: stretch; min-height: 44px; background: var(--paper); border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .mm-zbtns button {
+    min-width: 40px; padding: 0 10px; font: inherit; font-size: 1.125rem; font-weight: 700; color: var(--ink); background: none; border: 0; cursor: pointer;
+  }
+  .mm-zbtns button + button, .mm-zbtns output + button { border-left: 1.5px solid var(--hair); }
+  .mm-zbtns .mm-zword { font-size: 0.875rem; font-family: var(--font-display); }
+  .mm-zbtns button:hover:not(:disabled) { background: var(--sky); }
+  .mm-zbtns button:disabled { color: var(--hair); cursor: default; }
+  .mm-zbtns button:focus-visible { outline-offset: -3px; }
+  .mm-znow { display: grid; place-items: center; min-width: 4.2em; padding: 0 4px; font-family: var(--font-num); font-size: 0.9375rem; font-weight: 600; border-left: 1.5px solid var(--hair); }
 
   /* 図の地。箱（ステッカー）にはせず、本文の左右の余白（.wrap.wide の padding）の外まで、画面の幅いっぱいに白く敷く。
-     図が広いときは、この中で横にすべらせる（ページは横にすべらせない）。マウスでは地をつかんで動かす（scripts/jukeizu.ts）。
+     図が広いときは、この中で横にすべらせる（ページは横にすべらせない）。マウスでは地をつかんで動かす（scripts/tree-map.ts）。
      --gap は枝と子の列のあいだ（線を引く場所）、--kb は開け閉めの丸の大きさ、--w0〜--w3 は階層ごとの列の幅、--wl は取組の列の幅の上限 */
   .mm-box {
     --gap: 46px; --kb: 24px; --w-root: 8.5rem; --w0: 14rem; --w1: 15rem; --w2: 13rem; --w3: 14rem; --wl: 19rem;
@@ -86,7 +113,12 @@ const dataPath = treeDataPath();
   }
   /* 図の全体（木）。線の座標は、ここ（position: relative）を基にした枝の場所（offsetLeft・offsetTop）。画面より狭いときは真ん中に置く。
      はじめの深さ（将来像まで）の図がおさまる高さを、データが届く前から取っておく（描いたあとにずれないように） */
-  .mm-row { position: relative; isolation: isolate; display: flex; align-items: center; width: max-content; min-height: 400px; margin-inline: auto; padding: 32px 28px; }
+  .mm-row {
+    position: relative; isolation: isolate; display: flex; align-items: center; width: max-content; min-height: 400px; padding: 32px 28px;
+    transform: scale(var(--s, 1)); transform-origin: 0 0;
+  }
+  /* 縮尺の器。画面より狭いときは真ん中に置く。大きさはスクリプトが縮めた図の大きさにする（それまでは図そのものの大きさ） */
+  .mm-zoom { width: max-content; margin-inline: auto; overflow: hidden; }
   .mm-lines { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   .mm-lines path { fill: none; stroke: var(--hair); stroke-width: 2; stroke-linecap: round; }
   .mm-lines .l0 { stroke-width: 4; }
@@ -169,6 +201,6 @@ const dataPath = treeDataPath();
   /* キーボードで図に止まったときだけ、矢印キーで動かせることを地の右上に出す（目次と同じ。読み上げは木の aria-label で伝える） */
   .mm-box .mm-hint { top: 10px; right: 24px; z-index: 2; }
   .mm-box:has(.mm :focus-visible) .mm-hint { display: block; }
-  /* # の行き先（/mokuji/jukeizu/#s-1-1-a-1 など）は、画面の上に少し余白を取る */
+  /* # の行き先（/mokuji/tree/#s-1-1-a-1 など）は、画面の上に少し余白を取る */
   .mm-li[id] { scroll-margin-top: 16px; }
 </style>

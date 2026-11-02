@@ -10,7 +10,7 @@ import './torikumi-search.ts';
 import './jigyo-search.ts';
 import './show-more.ts';
 import './tree.ts';
-import './jukeizu.ts';
+import './tree-map.ts';
 import './indicator-map.ts';
 import './cell-pop.ts';
 import './like.ts';
