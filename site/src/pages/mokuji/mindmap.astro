@@ -10,14 +10,18 @@ import { LINKS } from '../../lib/links.ts';
 import { fmt } from '../../lib/format.ts';
 
 // 計画のマインドマップ。計画の目次（pages/mokuji.astro）と同じ木（将来像 → 基本施策 → 施策展開 → 施策 → 主な取組）を、
-// 左の基本計画から右へ枝分かれする図で見せる。データも目次と同じ JSON（lib/tree-data.ts）で、ブラウザのスクリプト（scripts/mindmap.ts）が描く。
-// - 並べ方: 行（li）を横の flex にして、枝（.mm-n）の右に子の並び（ul。縦の flex）を置き、枝を子の並びの上下の真ん中に置く。
+// 真ん中の基本計画から左右へ枝分かれする図で見せる。データも目次と同じ JSON（lib/tree-data.ts）で、ブラウザのスクリプト（scripts/mindmap.ts）が描く。
+// 横に広がる図なので、ページの幅の上限を外して画面いっぱいに使う（Base の wide）。
+// - 左右の分け方: 将来像を報告書の順に、前を右・後ろを左に分ける。どこで分けるかは、左右の施策の数がいちばん近くなる所（scripts/mindmap.ts）。
+//   どちらの側も上から順に並べる（読み上げ・キーボードの順も 1〜5 のまま。左の側は CSS の order で根の左に置く）。
+// - 並べ方: 行（li）を横の flex にして、枝（.mm-n）の外側（右の側は右、左の側は左）に子の並び（ul。縦の flex）を置き、枝を子の並びの上下の真ん中に置く。
 //   枝の幅を階層ごとに決めて、同じ階層の枝を縦の列にそろえる。枝と子を結ぶ線は、描いたあとの枝の場所から SVG の曲線で引く（scripts/mindmap.ts）。
-// - 枝の右の丸を押すと開け閉めする。閉じているときは丸にすぐ下の数（指標を除く）を、開いているときは「−」を出す。
+// - 枝の外側の丸を押すと開け閉めする。閉じているときは丸にすぐ下の数（指標を除く）を、開いているときは「−」を出す。
 //   名前はそれぞれのページへのリンクで、施策展開（ページが無い）は枝のどこを押しても開け閉めする。ほかの枝も、名前の外を押すと開け閉めする。
 // - 指標は目次と同じく選んで出す（components/TreeOptions.astro）。主要指標は基本施策の、成果指標は施策の子として点線で結び、活動指標は取組の名前の下に出す。
 //   値や達成率は出さない（形を見るページにし、良い・悪いの一覧にしない）。
-// - 図は箱の中で横にすべらせる（マウスでは地をつかんで動かせる）。開け閉めしても押した枝が画面の同じ場所に残るように、スクロールを合わせる。
+// - 図が箱より広いときは、箱の中で横にすべらせる（マウスでは地をつかんで動かせる）。はじめは根を箱の真ん中に置く。
+//   開け閉めしても押した枝が画面の同じ場所に残るように、スクロールを合わせる。
 // - キーボードと読み上げでは、目次と同じく木（role="tree"）として動かす。
 // はじめに選んである「開く深さ」（components/TreeOptions.astro の DEPTHS の何番目か）。将来像までを出し、計画から5つに分かれる形を最初に見せる
 const START = 0;
@@ -25,11 +29,11 @@ const n = planTreeCounts();
 // 目次と同じデータ。名前に中身のハッシュが付く（lib/tree-data.ts）
 const dataPath = treeDataPath();
 ---
-<Base title="計画のマインドマップ" description={`新・沖縄21世紀ビジョン基本計画から、${n.vision}つの将来像・${n.kihon}の基本施策・${n.tenkai}の施策展開・${n.shisaku}の施策・${fmt(n.torikumi)}件の主な取組（${yearLong(LATEST)}）へ枝分かれする形を、主要指標・成果指標と一緒にマインドマップで見られます。`}>
+<Base wide title="計画のマインドマップ" description={`新・沖縄21世紀ビジョン基本計画から、${n.vision}つの将来像・${n.kihon}の基本施策・${n.tenkai}の施策展開・${n.shisaku}の施策・${fmt(n.torikumi)}件の主な取組（${yearLong(LATEST)}）へ枝分かれする形を、主要指標・成果指標と一緒にマインドマップで見られます。`}>
   {/* 図のデータを、ページのスクリプトが届くのを待たずに読み始める（目次と同じファイルなので、目次を見たあとはキャッシュから読む） */}
   <link slot="head" rel="preload" href={dataPath} as="fetch" crossorigin="anonymous" />
   <h1>計画のマインドマップ</h1>
-  <p class="secondary lead">
+  <p class="secondary lead mm-lead">
     「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>の基本計画が、{n.vision}つの<Term word="将来像" />から、{n.kihon}の<Term word="基本施策" />、{n.tenkai}の<Term word="施策展開" />、{n.shisaku}の<Term word="施策" />、{fmt(n.torikumi)}件の<Term word="主な取組" />へと枝分かれする形を、成果をはかる<Term word="主要指標" />（{n.shuyou}）・<Term word="成果指標" />（{n.seika}）と一緒に見られます。
   </p>
   <TreeViews current="mindmap" />
@@ -40,20 +44,22 @@ const dataPath = treeDataPath();
     <span class="key-hint mm-hint" aria-hidden="true">矢印キーで枝を移り、開け閉めできます</span>
     <p class="mm-msg small secondary" role="status">マインドマップを読み込んでいます…</p>
     <div class="mm-scroll">
-      <div class="mm-row">
+      {/* 木（role="tree" はスクリプトが描いてから付ける）。左右の枝の並び（ul.mm-side）は、根の後ろにスクリプトが足す */}
+      <div class="mm-row mm" id="plan-mindmap" data-mindmap aria-label="計画のマインドマップ。新・沖縄21世紀ビジョン基本計画から枝分かれします。上下の矢印キーで枝を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}>
         <svg class="mm-lines" aria-hidden="true" focusable="false"></svg>
-        <p class="mm-root">新・沖縄21世紀ビジョン基本計画</p>
-        <ul class="mm" id="plan-mindmap" data-mindmap aria-label="計画のマインドマップ。上下の矢印キーで枝を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}></ul>
+        <p class="mm-root" aria-hidden="true">新・沖縄21世紀ビジョン基本計画</p>
       </div>
     </div>
     <noscript><p class="small mm-nojs">マインドマップの表示には JavaScript が必要です。<a href="/shisaku/">施策をさがす</a>・<a href="/future/">5つの将来像</a>から、それぞれの施策・取組を見られます。</p></noscript>
   </div>
-  <p class="small secondary">施策・指標・主な取組は{yearLong(LATEST)}の報告にあるものです。主要指標は、県の概要版の数え方（男女別などを分けて数える）です。主な取組は延べ件数で、いくつかの施策に載る取組は、それぞれの施策の下に出ます。</p>
+  <p class="small secondary mm-note">施策・指標・主な取組は{yearLong(LATEST)}の報告にあるものです。主要指標は、県の概要版の数え方（男女別などを分けて数える）です。主な取組は延べ件数で、いくつかの施策に載る取組は、それぞれの施策の下に出ます。</p>
 </Base>
 
 <style is:global>
   /* マインドマップの見た目。枝はスクリプト（scripts/mindmap.ts）が描くので、ページの <style>（scoped）では当たらない。.mm-box の下に書いた全体の CSS にする */
 
+  /* 頭の文は、画面いっぱいに広げると読みにくいので、ほかのページの本文の幅にとどめる */
+  .mm-lead, .mm-note { max-width: 1008px; }
   /* 開く深さと指標。小さく1行に並べる（箱に入れない）。スクリプトでしか動かないので、スクリプトが動くとき（html.js）だけ出す */
   .filters.mm-opts { flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
   :root:not(.js) .mm-opts { display: none; }
@@ -74,9 +80,9 @@ const dataPath = treeDataPath();
     .mm-scroll .mm-n { cursor: auto; }
     .mm-scroll.mm-drag { cursor: grabbing; user-select: none; }
   }
-  /* 図の全体。線の座標は、ここ（position: relative）を基にした枝の場所（offsetLeft・offsetTop）。
+  /* 図の全体（木）。線の座標は、ここ（position: relative）を基にした枝の場所（offsetLeft・offsetTop）。箱より狭いときは箱の真ん中に置く。
      はじめの深さ（将来像まで）の図がおさまる高さを、データが届く前から取っておく（描いたあとにずれないように） */
-  .mm-row { position: relative; isolation: isolate; display: flex; align-items: center; width: max-content; min-height: 400px; padding: 24px 28px 24px 20px; }
+  .mm-row { position: relative; isolation: isolate; display: flex; align-items: center; width: max-content; min-height: 400px; margin-inline: auto; padding: 24px 28px; }
   .mm-lines { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   .mm-lines path { fill: none; stroke: var(--hair); stroke-width: 2; stroke-linecap: round; }
   .mm-lines .l0 { stroke-width: 4; }
@@ -89,10 +95,13 @@ const dataPath = treeDataPath();
     font-family: var(--font-display); font-weight: 700; line-height: 1.5; color: var(--paper); background: var(--line); border-radius: 16px;
   }
 
-  /* 枝の並び。li を横に、ul を縦に並べ、枝を子の並びの上下の真ん中に置く */
-  .mm, .mm ul { list-style: none; margin: 0; padding: 0 0 0 var(--gap); display: flex; flex-direction: column; justify-content: center; gap: var(--vg, 4px); }
+  /* 枝の並び。li を横に、ul を縦に並べ、枝を子の並びの上下の真ん中に置く。左の側（.mm-l）は左右を入れ替え、根の左に置く */
+  .mm-side, .mm-side ul { list-style: none; margin: 0; padding: 0 0 0 var(--gap); display: flex; flex-direction: column; justify-content: center; gap: var(--vg, 4px); }
   .mm ul[hidden] { display: none; }
-  .mm { --vg: 14px; }
+  .mm-side { --vg: 14px; }
+  .mm-side.mm-l { order: -1; }
+  .mm-side.mm-l, .mm-l ul { padding: 0 var(--gap) 0 0; align-items: flex-end; }
+  .mm-l .mm-li { flex-direction: row-reverse; }
   .mm .lv0 > ul { --vg: 8px; }
   .mm .lv1 > ul { --vg: 6px; }
   .mm .lv2 > ul { --vg: 4px; }
@@ -104,6 +113,7 @@ const dataPath = treeDataPath();
   /* 将来像は帯（目次と同じ形） */
   .mm .lv0 > .mm-n { width: var(--w0); }
   .mm .lv0 .sz-ribbon { padding: 3px 18px 3px 4px; gap: 8px; }
+  .mm-l .lv0 .sz-ribbon { padding-left: 16px; }
   .mm .lv0 .sz-ribbon .badge-sz { width: 1.9em; height: 1.9em; font-size: 0.9rem; }
   .mm .lv0 .sz-ribbon .name-link { font-family: var(--font-display); font-size: 0.9375rem; }
   /* 基本施策・施策展開・施策は角の丸い枠。下の段ほど細く淡くする */
@@ -111,6 +121,7 @@ const dataPath = treeDataPath();
   .mm .lv1 > .box { width: var(--w1); font-size: 0.9375rem; border: 2px solid var(--line); }
   .mm .lv2 > .box { width: var(--w2); font-size: 0.875rem; border: 1.5px solid var(--ink-2); border-radius: 10px; cursor: pointer; }
   .mm .lv3 > .box { width: var(--w3); font-size: 0.875rem; border: 1.5px solid var(--hair); border-radius: 10px; }
+  .mm-l .box { padding: 5px 10px 5px 16px; }
   .mm .lv2 > .box:hover { background: var(--sky); }
   .mm .tk-name { font-family: var(--font-display); font-weight: 700; }
   /* 取組と指標（下に段の無い枝）は枠を付けない。取組の番号は右にそろえる */
@@ -130,12 +141,13 @@ const dataPath = treeDataPath();
   .mm:not([data-show~='seika']) [data-ind='seika'],
   .mm:not([data-show~='katsudou']) [data-ind='katsudou'] { display: none; }
 
-  /* 開け閉めの丸。枝の右の縁の真ん中に置く。閉じているときはすぐ下の数、開いているときは「−」。押せる所は丸より広く取る */
+  /* 開け閉めの丸。枝の外側（右の側は右、左の側は左）の縁の真ん中に置く。閉じているときはすぐ下の数、開いているときは「−」。押せる所は丸より広く取る */
   .mm .mm-tg {
     position: absolute; right: calc(var(--kb) / -2); top: 50%; translate: 0 -50%; z-index: 1; display: grid; place-items: center;
     width: var(--kb); height: var(--kb); padding: 0; font: inherit; font-family: var(--font-num); font-size: 0.75rem; font-weight: 600; line-height: 1;
     color: var(--ink); background: var(--paper); border: 2px solid var(--line); border-radius: 50%; cursor: pointer;
   }
+  .mm-l .mm-tg { right: auto; left: calc(var(--kb) / -2); }
   .mm .mm-tg::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; }
   .mm .mm-tg:hover { background: var(--sky); }
   .mm .mm-tg[aria-expanded='true'] .mm-cnt { display: none; }

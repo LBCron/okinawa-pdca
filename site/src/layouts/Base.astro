@@ -20,8 +20,9 @@ import appleTouchIcon from '../assets/apple-touch-icon.png';
 // jump はシェア用のページ（lib/routes.ts の SHARE_ROUTES）の、指標を見せる場所の URL。検索に載せず（noindex）、開いた人をすぐにそこへ移す。
 // SNS がリンクのカードを作るときはスクリプトを動かさないので、このページの og:image（指標のカード）が使われる。og:url と canonical もこのページの URL のままにする
 // （Facebook は og:url の URL を読み直すため）
-interface Props { title?: string; description?: string; canonical?: boolean; ogType?: 'website' | 'article'; jump?: string }
-const { title, description = '沖縄県が毎年公表している「沖縄県PDCA実施結果」を、施策ごとに見やすく整理した非公式サイトです。', canonical = true, ogType = 'website', jump } = Astro.props;
+// wide は、ヘッダー・本文・フッターの幅の上限（.wrap の max-width）を外して画面いっぱいに使うページ（横に広がる図を見せる、計画のマインドマップ）
+interface Props { title?: string; description?: string; canonical?: boolean; ogType?: 'website' | 'article'; jump?: string; wide?: boolean }
+const { title, description = '沖縄県が毎年公表している「沖縄県PDCA実施結果」を、施策ごとに見やすく整理した非公式サイトです。', canonical = true, ogType = 'website', jump, wide = false } = Astro.props;
 const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name} | ${SITE.tagline}`;
 const path = Astro.url.pathname;
 // 本番のドメインでのこのページの URL（クエリを除く）。プレビュー（workers.dev）・絞り込みのクエリ付きの URL も、このページとして扱ってもらう
@@ -182,7 +183,7 @@ for (const code of [THEME_INIT, NAV_SCROLL, HEAD_SCROLL, SPECULATION_RULES, ...(
     {/* 外部リンク（components/ExtLink.astro）が aria-describedby で指す、読み上げ用の説明。画面には出さず、コピーにも入らない */}
     <span id="newtab-note" hidden>別のタブで開きます</span>
     <header class="site-header">
-      <div class="wrap">
+      <div class:list={['wrap', wide && 'wide']}>
         <div class="site-id">
           <a class="site-title" href="/">
             {/* ロゴ: 星空の丘で、まるい子（いま）がみらいの白い星を見上げる。色は styles/global.css の --logo-*。favicon は src/assets/favicon.svg */}
@@ -211,12 +212,12 @@ for (const code of [THEME_INIT, NAV_SCROLL, HEAD_SCROLL, SPECULATION_RULES, ...(
         <script is:inline set:html={NAV_SCROLL}></script>
       </div>
     </header>
-    <main class="wrap" id="main">
+    <main class:list={['wrap', wide && 'wide']} id="main">
       <slot />
     </main>
     <script is:inline set:html={HEAD_SCROLL}></script>
     <footer class="site-footer">
-      <div class="wrap">
+      <div class:list={['wrap', wide && 'wide']}>
         {/* ナビに無いページへのリンクと、年の書き方・配色のボタン、作り手の1行（著作権の表示の代わりに、いちばん下に小さく） */}
         <div class="foot-row">
           <ul class="foot-links">

@@ -1,9 +1,11 @@
 // 計画のマインドマップ（/mokuji/mindmap/。pages/mokuji/mindmap.astro）。
-//  - 描く: ul[data-mindmap] の data-src（計画の目次と同じ JSON。読めなければ data-fallback の控え）を読み、枝を描く（データの形は lib/tree-data.ts）。
+//  - 描く: [data-mindmap] の data-src（計画の目次と同じ JSON。読めなければ data-fallback の控え）を読み、枝を描く（データの形は lib/tree-data.ts）。
 //    描く HTML の形と見た目の決まりは pages/mokuji/mindmap.astro の頭の説明と CSS
-//  - 線: 開いている枝の右の縁から、子の枝の左の縁へ、SVG の曲線を引く。図の大きさが変わるたび（開け閉め・出す指標・画面の幅・字の読み込み）に引き直す
+//  - 左右: 将来像を報告書の順に、前を根の右・後ろを根の左に分ける（split）。左の側の枝は、子を左に並べる（CSS で左右を入れ替える）
+//  - 線: 開いている枝の外側の縁から、子の枝の内側の縁へ（左の側は左右が逆）、SVG の曲線を引く。図の大きさが変わるたび（開け閉め・出す指標・画面の幅・字の読み込み）に引き直す
 //  - 開け閉め: 丸・施策展開の枝・名前の外を押したとき、キーボード、開く深さ。押して開け閉めしたときは、押した枝が画面の同じ高さに残るように
-//    ページのスクロールを合わせ、開いた子が箱の右にはみ出すときは、箱を横にすべらせて見せる（どこからどこへ出たかが分かるように）
+//    ページと箱のスクロールを合わせ、開いた子が箱の外にはみ出すときは、箱を横にすべらせて見せる（どこからどこへ出たかが分かるように）。
+//    はじめと開く深さを選んだときは、根を箱の横の真ん中に置く
 //  - 開く深さ（select[data-tree-depth]）・出す指標（scripts/tree-show.ts）・戻る・進む・# の行き先・キーボードは、計画の目次（scripts/tree.ts）と同じ。
 //    キーワードでさがすのは目次だけ
 //  - マウスでは、図の地（枝の外）をつかんで、図を上下左右に動かせる
@@ -62,6 +64,21 @@ function visionLi(v: TreeVision) {
   return `<li role="none" class="mm-li lv0" id="v-${v.id}"><div class="mm-n"><span class="sz-ribbon sz-${v.id}"><span class="badge-sz sz-${v.id}" aria-hidden="true">${v.id}</span><a class="name-link" href="/future/${v.id}/" ${ti(1, true)}>${sr(`将来像${v.id}`)}${esc(v.name)}</a></span>${knob(cs)}</div>${group(v.kihon.map(kihonLi))}</li>`;
 }
 
+// 将来像を左右に分ける所。前の n 個を右、残りを左にし、左右の施策の数がいちばん近くなる n にする（同じなら右を多く）。
+// 開いたときの高さは、おおよそ施策（とその下の取組）の数で決まるため
+function split(visions: TreeVision[]) {
+  const w = visions.map((v) => v.kihon.reduce((n, k) => n + k.tenkai.reduce((m, t) => m + t.shisaku.length, 0), 0));
+  const all = w.reduce((a, b) => a + b, 0);
+  let best = visions.length;
+  let diff = Infinity;
+  for (let n = 1, right = 0; n <= visions.length; n++) {
+    right += w[n - 1];
+    const d = Math.abs(right - (all - right));
+    if (d < diff) [best, diff] = [n, d];
+  }
+  return best;
+}
+
 // ---------------------------------------------------------------- 読み込み
 
 // 離れるときに残す、開き方・出す指標・スクロールの位置（history.state の mindmap）。src は描いたデータで、データが変わったら（公開し直したら）使わない
@@ -71,7 +88,7 @@ const savedOf = (src: string): Saved | null => {
   return s && s.src === src ? s : null;
 };
 
-for (const tree of document.querySelectorAll<HTMLElement>('ul[data-mindmap]')) void init(tree);
+for (const tree of document.querySelectorAll<HTMLElement>('[data-mindmap]')) void init(tree);
 
 async function init(tree: HTMLElement) {
   const box = tree.closest<HTMLElement>('.mm-box')!;
@@ -95,24 +112,28 @@ async function init(tree: HTMLElement) {
     if (msg) msg.textContent = 'マインドマップを読み込めませんでした。時間をおいて、ページを再読み込みしてください。';
     return;
   }
-  tree.innerHTML = data.visions.map(visionLi).join('');
+  // 左右の枝の並びは、根の後ろに右・左の順に置く（読み上げの順を将来像の順にする。左の側は CSS の order で根の左に出す）
+  const cut = split(data.visions);
+  const side = (cls: string, vs: TreeVision[]) => (vs.length ? `<ul role="none" class="mm-side ${cls}">${vs.map(visionLi).join('')}</ul>` : '');
+  rootBox.insertAdjacentHTML('afterend', side('mm-r', data.visions.slice(0, cut)) + side('mm-l', data.visions.slice(cut)));
   tree.setAttribute('role', 'tree');
 
   // ---------------------------------------------------------------- 枝
-  // 木の枝（指標の枝は除く）。box は枝の枠、item はフォーカスする名前、ul は子の並び（下の段の無い取組は null）、inds は子の指標の枝の枠。level は将来像が 0
-  interface Row { li: HTMLLIElement; box: HTMLElement; item: HTMLElement; tg: HTMLButtonElement | null; ul: HTMLUListElement | null; kids: Row[]; inds: HTMLElement[]; parent: Row | null; level: number; open: boolean }
+  // 木の枝（指標の枝は除く）。box は枝の枠、item はフォーカスする名前、ul は子の並び（下の段の無い取組は null）、inds は子の指標の枝の枠。
+  // level は将来像が 0。left は根の左の側の枝
+  interface Row { li: HTMLLIElement; box: HTMLElement; item: HTMLElement; tg: HTMLButtonElement | null; ul: HTMLUListElement | null; kids: Row[]; inds: HTMLElement[]; parent: Row | null; level: number; left: boolean; open: boolean }
   const rowOf = new Map<Element, Row>(); // 枠・名前・li から枝へ
   const nodes: Row[] = []; // 開け閉めできる枝（報告書の順）
-  const build = (ul: Element, parent: Row | null, level: number): Row[] => {
+  const build = (ul: Element, parent: Row | null, level: number, left: boolean): Row[] => {
     const rs = [...ul.querySelectorAll<HTMLLIElement>(':scope > li:not(.mm-ind)')].map((li) => {
       const b = li.querySelector<HTMLElement>(':scope > .mm-n')!;
       const sub = li.querySelector<HTMLUListElement>(':scope > ul');
-      const r: Row = { li, box: b, item: b.querySelector<HTMLElement>('[role="treeitem"]')!, tg: b.querySelector('.mm-tg'), ul: sub, kids: [], inds: [], parent, level, open: false };
+      const r: Row = { li, box: b, item: b.querySelector<HTMLElement>('[role="treeitem"]')!, tg: b.querySelector('.mm-tg'), ul: sub, kids: [], inds: [], parent, level, left, open: false };
       rowOf.set(li, r).set(b, r).set(r.item, r);
       if (sub) {
         nodes.push(r);
         r.inds = [...sub.querySelectorAll<HTMLElement>(':scope > .mm-ind > .mm-n')];
-        r.kids = build(sub, r, level + 1);
+        r.kids = build(sub, r, level + 1, left);
       }
       return r;
     });
@@ -123,7 +144,13 @@ async function init(tree: HTMLElement) {
     });
     return rs;
   };
-  const roots = build(tree, null, 0);
+  const sides = [...tree.querySelectorAll(':scope > .mm-side')];
+  const roots = sides.flatMap((ul) => build(ul, null, 0, ul.classList.contains('mm-l')));
+  // 将来像は左右の並びに分かれているので、何番目かは全体（1〜5）で数え直す
+  roots.forEach((r, i) => {
+    r.item.setAttribute('aria-posinset', String(i + 1));
+    r.item.setAttribute('aria-setsize', String(roots.length));
+  });
 
   // ---------------------------------------------------------------- 線
   // 枝の場所は、図の全体（.mm-row。position: relative）を基にした、レイアウトの上の場所（動きの transform に左右されない）。
@@ -140,24 +167,25 @@ async function init(tree: HTMLElement) {
   };
   const draw = () => {
     const out: string[] = [];
-    const curve = (a: HTMLElement, b: HTMLElement, cls: string) => {
+    // a の外側の縁の真ん中から、b の内側の縁の真ん中へ（left は左の側。左右が逆になる）
+    const curve = (a: HTMLElement, b: HTMLElement, cls: string, left: boolean) => {
       if (!b.offsetParent) return; // 隠した指標
       const pa = at(a);
       const pb = at(b);
-      const x1 = pa.x + a.offsetWidth;
+      const x1 = left ? pa.x : pa.x + a.offsetWidth;
       const y1 = pa.y + a.offsetHeight / 2;
-      const x2 = pb.x;
+      const x2 = left ? pb.x + b.offsetWidth : pb.x;
       const y2 = pb.y + b.offsetHeight / 2;
       const mx = (x1 + x2) / 2;
       out.push(`<path class="${cls}" d="M${r1(x1)} ${r1(y1)}C${r1(mx)} ${r1(y1)} ${r1(mx)} ${r1(y2)} ${r1(x2)} ${r1(y2)}"/>`);
     };
     // 線の太さは、計画から将来像へ（l0）・将来像から基本施策へ（l1）を太くし、指標へ（li）は細い点線にする（pages/mokuji/mindmap.astro の CSS）
-    for (const r of roots) curve(rootBox, r.box, 'l0');
+    for (const r of roots) curve(rootBox, r.box, 'l0', r.left);
     const walk = (rs: Row[]) => {
       for (const r of rs) {
         if (!r.open) continue;
-        for (const b of r.inds) curve(r.box, b, 'li');
-        for (const k of r.kids) curve(r.box, k.box, r.level === 0 ? 'l1' : 'l2');
+        for (const b of r.inds) curve(r.box, b, 'li', r.left);
+        for (const k of r.kids) curve(r.box, k.box, r.level === 0 ? 'l1' : 'l2', r.left);
         walk(r.kids);
       }
     };
@@ -200,22 +228,31 @@ async function init(tree: HTMLElement) {
   const sync = () => {
     if (depth) depth.value = String(depths.find((n) => nodes.every((r) => r.open === opensAt(n)(r))) ?? '');
   };
-  // 押して・キーボードで開け閉めする。押した枝が画面の同じ高さに残るようにページのスクロールを合わせ、開いた子が箱の右にはみ出すときは箱を横にすべらせる
+  // 根を箱の横の真ん中に置く（図が箱より広いとき。はじめと、開く深さを選んだとき）
+  const center = () => {
+    scroller.scrollLeft = at(rootBox).x + rootBox.offsetWidth / 2 - scroller.clientWidth / 2;
+  };
+  // 押して・キーボードで開け閉めする。押した枝が画面の同じ場所に残るようにページと箱のスクロールを合わせ
+  // （左の側を開くと、図が左に広がって根と右の側も右へずれるため）、開いた子が箱の外にはみ出すときは箱を横にすべらせる
   const toggle = (r: Row, open: boolean) => {
     if (!r.ul || r.open === open) return;
-    const before = r.box.getBoundingClientRect().top;
+    const before = r.box.getBoundingClientRect();
     setOpen(r, open);
     if (open) reveal([r.li], 'm-opening');
-    const dy = r.box.getBoundingClientRect().top - before;
-    if (dy) window.scrollBy({ top: dy, behavior: 'instant' });
+    const after = r.box.getBoundingClientRect();
+    if (after.left !== before.left) scroller.scrollLeft += after.left - before.left;
+    if (after.top !== before.top) window.scrollBy({ top: after.top - before.top, behavior: 'instant' });
     draw();
     sync();
     if (!open) return;
     const view = scroller.getBoundingClientRect();
-    const right = Math.max(...[...r.kids.map((k) => k.box), ...r.inds].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect().right));
-    const over = right + 16 - view.right;
-    const room = r.box.getBoundingClientRect().left - view.left - 16;
-    if (over > 0 && room > 0) scroller.scrollBy({ left: Math.min(over, room), behavior: moving() ? 'smooth' : 'instant' });
+    const box = r.box.getBoundingClientRect();
+    const kids = [...r.kids.map((k) => k.box), ...r.inds].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect());
+    // はみ出したぶん（over）だけ、押した枝が箱から出ない範囲（room）ですべらせる
+    const [over, room, dir] = r.left
+      ? [view.left + 16 - Math.min(...kids.map((k) => k.left)), view.right - 16 - box.right, -1]
+      : [Math.max(...kids.map((k) => k.right)) + 16 - view.right, box.left - view.left - 16, 1];
+    if (over > 0 && room > 0) scroller.scrollBy({ left: dir * Math.min(over, room), behavior: moving() ? 'smooth' : 'instant' });
   };
 
   // ---------------------------------------------------------------- キーボード
@@ -297,6 +334,7 @@ async function init(tree: HTMLElement) {
     const open = opensAt(Number(depth.value));
     for (const r of nodes) setOpen(r, open(r));
     draw();
+    center();
   });
 
   // ---------------------------------------------------------------- 地をつかんで動かす（マウスだけ。指では箱とページのスクロールのまま）
@@ -350,7 +388,7 @@ async function init(tree: HTMLElement) {
       sync();
       draw();
       r.box.scrollIntoView({ block: 'start', inline: 'center' });
-    }
+    } else center();
   }
 
   // 離れるときに、開き方とスクロールの位置を残す
