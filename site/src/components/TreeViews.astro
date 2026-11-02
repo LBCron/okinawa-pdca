@@ -1,13 +1,13 @@
 ---
-// 計画の木の見せ方の切り替え（目次 /mokuji/ とマインドマップ /mokuji/mindmap/）。同じ木を、行の並びと枝分かれの図のどちらで見るかを選ぶ。
+// 計画の木の見せ方の切り替え（目次 /mokuji/ と樹形図 /mokuji/jukeizu/）。同じ木を、行の並びと枝分かれの図のどちらで見るかを選ぶ。
 // いまのページは aria-current="page" で伝え、押せない札にする
 interface Props {
-  current: 'mokuji' | 'mindmap';
+  current: 'mokuji' | 'jukeizu';
 }
 const { current } = Astro.props;
 const VIEWS = [
   { key: 'mokuji', href: '/mokuji/', label: '目次' },
-  { key: 'mindmap', href: '/mokuji/mindmap/', label: 'マインドマップ' },
+  { key: 'jukeizu', href: '/mokuji/jukeizu/', label: '樹形図' },
 ] as const;
 ---
 <nav class="tree-views" aria-label="計画の見せ方">

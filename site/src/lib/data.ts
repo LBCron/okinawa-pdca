@@ -853,7 +853,7 @@ export function getPlanTree(): PlanTreeVision[] {
     kihon: kihon.filter((k) => k.shouraizou === vision.id).map((k) => ({ kihon: k, shuyou: shuyou.filter((r) => r.kihon_id === k.id), tenkai: tenkaiOf(k.id) })),
   }));
 }
-// 計画の木の段ごとの数（計画の目次とマインドマップのページの頭の文と説明文）。主な取組は延べ件数、主要指標は概要版の数え方（getPlanTree）
+// 計画の木の段ごとの数（計画の目次と樹形図のページの頭の文と説明文）。主な取組は延べ件数、主要指標は概要版の数え方（getPlanTree）
 export function planTreeCounts() {
   const tree = getPlanTree();
   const kihon = tree.flatMap((v) => v.kihon);

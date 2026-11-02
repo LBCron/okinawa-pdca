@@ -1,8 +1,8 @@
-// 計画のマインドマップ（/mokuji/mindmap/。pages/mokuji/mindmap.astro）。
-//  - 描く: [data-mindmap] の data-src（計画の目次と同じ JSON。読めなければ data-fallback の控え）を読み、枝を描く（データの形は lib/tree-data.ts）。
-//    描く HTML の形と見た目の決まりは pages/mokuji/mindmap.astro の頭の説明と CSS
+// 計画の樹形図（/mokuji/jukeizu/。pages/mokuji/jukeizu.astro）。
+//  - 描く: [data-jukeizu] の data-src（計画の目次と同じ JSON。読めなければ data-fallback の控え）を読み、枝を描く（データの形は lib/tree-data.ts）。
+//    描く HTML の形と見た目の決まりは pages/mokuji/jukeizu.astro の頭の説明と CSS
 //  - 左右: 将来像を報告書の順に、前を根の右・後ろを根の左に分ける（split）。左の側の枝は、子を左に並べる（CSS で左右を入れ替える）
-//  - 線: 開いている枝の外側の縁から、子の枝の内側の縁へ（左の側は左右が逆）、SVG の曲線を引く。図の大きさが変わるたび（開け閉め・出す指標・画面の幅・字の読み込み）に引き直す
+//  - 線: 開いている枝の枠の外側の縁から、子の枝の枠の内側の縁へ（左の側は左右が逆）、SVG の曲線を引く。図の大きさが変わるたび（開け閉め・出す指標・画面の幅・字の読み込み）に引き直す
 //  - 開け閉め: 丸・施策展開の枝・名前の外を押したとき、キーボード、開く深さ。押して開け閉めしたときは、押した枝が画面の同じ高さに残るように
 //    ページと箱のスクロールを合わせ、開いた子が箱の外にはみ出すときは、箱を横にすべらせて見せる（どこからどこへ出たかが分かるように）。
 //    はじめと開く深さを選んだときは、根を箱の横の真ん中に置く
@@ -18,50 +18,56 @@ import { treeShow } from './tree-show.ts';
 
 // ---------------------------------------------------------------- 描く
 
-// すぐ下に並ぶものの数（0 のものは出さない）。丸には最初の数（指標を除いた数。取組の無い施策は成果指標の数）を出し、
-// 丸の読み上げの名前には全部を使う。丸の数は読ませない（docs/design.md の9章）
-type Count = [label: string, n: number];
-const knob = (cs: Count[]) => {
-  const has = cs.filter(([, n]) => n > 0);
-  return `<button type="button" class="mm-tg" tabindex="-1" aria-expanded="false" aria-label="${esc(has.map(([l, n]) => `${l} ${n}`).join('・'))}"><span class="mm-cnt" aria-hidden="true">${has[0][1]}</span></button>`;
-};
-const hasKids = (cs: Count[]) => cs.some(([, n]) => n > 0);
+// すぐ下に並ぶものの数。丸に出し、丸の読み上げの名前にも使う（丸の数は読ませない。docs/design.md の9章）
+const knob = (label: string, n: number) =>
+  `<button type="button" class="mm-tg" tabindex="-1" aria-expanded="false" aria-label="${label} ${n}"><span class="mm-cnt" aria-hidden="true">${n}</span></button>`;
 // 木の項目（treeitem）。目次（scripts/tree.ts）と同じく、li は項目にせず、中の名前を項目にする。level は将来像が 1
 const ti = (level: number, open = false) => `role="treeitem" tabindex="-1" aria-level="${level}"${open ? ' aria-expanded="false"' : ''}`;
-// 読み上げの名前の頭に、段の名前と番号を足す（画面の番号と「指標」の札は読ませない）
+// 読み上げの名前の頭に、段の名前と番号を足す（画面の番号と指標の札は読ませない）
 const sr = (s: string) => `<span class="sr-only">${esc(s)}　</span>`;
 // 子の並び。はじめは閉じておき、開く深さ（または離れたときの開き方）で開く
 const group = (items: string[]) => `<ul role="group" hidden>${items.join('')}</ul>`;
-// 指標の枝（主要指標・成果指標）。マウスで押すリンクにし、キーボードでは止まらない（目次と同じ）。show は出す指標の種類（data-show の値）
-const indLeaf = ([name, href]: TreeLink, kind: string, show: string) =>
-  `<li role="none" class="mm-li mm-ind" data-ind="${show}"><div class="mm-n leaf"><span class="ind" aria-hidden="true">指標</span><a class="name-link" href="${esc(href)}" tabindex="-1">${sr(kind)}${esc(name)}</a></div></li>`;
-// 取組の活動指標。取組の名前の下に出し、取組のページの活動指標の節へのリンクにする
-const actInd = (name: string, href: string) =>
-  name ? `<span class="act" data-ind="katsudou"><span class="ind" aria-hidden="true">指標</span><a class="sub-link" href="${esc(href)}#katsudou" tabindex="-1">${sr('活動指標')}${esc(name)}</a></span>` : '';
+// 枝がはかる指標（基本施策の主要指標・施策の成果指標・取組の活動指標）。枝の子にはせず、枝と同じ列の、枝の枠のすぐ下に並べる
+// （計画の段とその物差しを一緒に見せる。枝をたどると、段ごとの物差しが 主要指標 → 成果指標 → 活動指標 と続いて見える。
+// 指標どうしは線で結ばない。県が決めていない結び付きになるため。docs/design.md の1章）。
+// 札は指標の種類の名前。マウスで押すリンクにし、キーボードでは止まらない（目次と同じ）。show は出す指標の種類（data-show の値）
+const inds = (links: TreeLink[], kind: string, show: string, hash = '') =>
+  links.length
+    ? `<div class="mm-inds" data-ind="${show}">${links.map(([name, href]) => `<p class="mm-i"><span class="ind" aria-hidden="true">${kind}</span><a class="sub-link" href="${esc(href)}${hash}" tabindex="-1">${sr(kind)}${esc(name)}</a></p>`).join('')}</div>`
+    : '';
+// 枝の列の中身（枝の枠と、その下の指標）
+const cell = (box: string, ind = '') => `<div class="mm-g">${box}${ind}</div>`;
 
+// 主な取組。活動指標は取組のページの活動指標の節へのリンクにする。複数の施策に載っている取組は、名前の後ろに「2施策に共通」（目次と同じ）
+const toriLi = ([no, name, href, act, common]: TreeShisaku['torikumi'][number]) =>
+  `<li role="none" class="mm-li lv4">${cell(
+    `<div class="mm-n leaf"><span class="no" aria-hidden="true">${no}</span><span class="nm"><a class="name-link" href="${esc(href)}" ${ti(5)}>${sr(`取組${no}`)}${esc(name)}</a>${common ? `<span class="common">${common}施策に共通</span>` : ''}</span></div>`,
+    act ? inds([[act, href]], '活動指標', 'katsudou', '#katsudou') : '',
+  )}</li>`;
 function shisakuLi(s: TreeShisaku) {
-  const cs: Count[] = [['取組', s.torikumi.length], ['成果指標', s.seika.length]];
-  const kids = [
-    ...s.seika.map((l) => indLeaf(l, '成果指標', 'seika')),
-    // 複数の施策に載っている取組は、名前の後ろに「2施策に共通」（目次と同じ）
-    ...s.torikumi.map(([no, name, href, act, common]) => `<li role="none" class="mm-li"><div class="mm-n leaf"><span class="no" aria-hidden="true">${no}</span><span class="nm"><a class="name-link" href="${esc(href)}" ${ti(5)}>${sr(`取組${no}`)}${esc(name)}</a>${common ? `<span class="common">${common}施策に共通</span>` : ''}${actInd(act, href)}</span></div></li>`),
-  ];
-  const has = hasKids(cs);
-  return `<li role="none" class="mm-li lv3" id="s-${esc(s.id)}"><div class="mm-n box"><span class="no" aria-hidden="true">${esc(s.no)}</span><a class="name-link" href="/shisaku/${esc(s.id)}/" ${ti(4, has)}>${sr(`施策${s.no}`)}${esc(s.name)}</a>${has ? knob(cs) : ''}</div>${has ? group(kids) : ''}</li>`;
+  const has = s.torikumi.length > 0;
+  return `<li role="none" class="mm-li lv3" id="s-${esc(s.id)}">${cell(
+    `<div class="mm-n box"><span class="no" aria-hidden="true">${esc(s.no)}</span><a class="name-link" href="/shisaku/${esc(s.id)}/" ${ti(4, has)}>${sr(`施策${s.no}`)}${esc(s.name)}</a>${has ? knob('取組', s.torikumi.length) : ''}</div>`,
+    inds(s.seika, '成果指標', 'seika'),
+  )}${has ? group(s.torikumi.map(toriLi)) : ''}</li>`;
 }
-// 施策展開にはページが無いので、名前はリンクにせず、枝のどこを押しても開け閉めする
+// 施策展開にはページも指標も無いので、名前はリンクにせず、枝のどこを押しても開け閉めする
 function tenkaiLi(t: TreeTenkai) {
-  const cs: Count[] = [['施策', t.shisaku.length]];
-  return `<li role="none" class="mm-li lv2" id="t-${esc(t.id)}"><div class="mm-n box"><span class="no" aria-hidden="true">${esc(t.no)}</span><span class="tk-name" ${ti(3, true)}>${sr(`施策展開${t.no}`)}${esc(t.name)}</span>${knob(cs)}</div>${group(t.shisaku.map(shisakuLi))}</li>`;
+  return `<li role="none" class="mm-li lv2" id="t-${esc(t.id)}">${cell(
+    `<div class="mm-n box"><span class="no" aria-hidden="true">${esc(t.no)}</span><span class="tk-name" ${ti(3, true)}>${sr(`施策展開${t.no}`)}${esc(t.name)}</span>${knob('施策', t.shisaku.length)}</div>`,
+  )}${group(t.shisaku.map(shisakuLi))}</li>`;
 }
 function kihonLi(k: TreeKihon) {
-  const cs: Count[] = [['施策展開', k.tenkai.length], ['主要指標', k.shuyou.length]];
-  return `<li role="none" class="mm-li lv1" id="k-${esc(k.id)}"><div class="mm-n box"><span class="no" aria-hidden="true">${esc(k.no)}</span><a class="name-link" href="/kihon/${esc(k.id)}/" ${ti(2, true)}>${sr(`基本施策${k.no}`)}${esc(k.name)}</a>${knob(cs)}</div>${group([...k.shuyou.map((l) => indLeaf(l, '主要指標', 'shuyou')), ...k.tenkai.map(tenkaiLi)])}</li>`;
+  return `<li role="none" class="mm-li lv1" id="k-${esc(k.id)}">${cell(
+    `<div class="mm-n box"><span class="no" aria-hidden="true">${esc(k.no)}</span><a class="name-link" href="/kihon/${esc(k.id)}/" ${ti(2, true)}>${sr(`基本施策${k.no}`)}${esc(k.name)}</a>${knob('施策展開', k.tenkai.length)}</div>`,
+    inds(k.shuyou, '主要指標', 'shuyou'),
+  )}${group(k.tenkai.map(tenkaiLi))}</li>`;
 }
 // 将来像は帯にする（番号の印は components/Sz.astro と同じ形）
 function visionLi(v: TreeVision) {
-  const cs: Count[] = [['基本施策', v.kihon.length]];
-  return `<li role="none" class="mm-li lv0" id="v-${v.id}"><div class="mm-n"><span class="sz-ribbon sz-${v.id}"><span class="badge-sz sz-${v.id}" aria-hidden="true">${v.id}</span><a class="name-link" href="/future/${v.id}/" ${ti(1, true)}>${sr(`将来像${v.id}`)}${esc(v.name)}</a></span>${knob(cs)}</div>${group(v.kihon.map(kihonLi))}</li>`;
+  return `<li role="none" class="mm-li lv0" id="v-${v.id}">${cell(
+    `<div class="mm-n"><span class="sz-ribbon sz-${v.id}"><span class="badge-sz sz-${v.id}" aria-hidden="true">${v.id}</span><a class="name-link" href="/future/${v.id}/" ${ti(1, true)}>${sr(`将来像${v.id}`)}${esc(v.name)}</a></span>${knob('基本施策', v.kihon.length)}</div>`,
+  )}${group(v.kihon.map(kihonLi))}</li>`;
 }
 
 // 将来像を左右に分ける所。前の n 個を右、残りを左にし、左右の施策の数がいちばん近くなる n にする（同じなら右を多く）。
@@ -81,14 +87,14 @@ function split(visions: TreeVision[]) {
 
 // ---------------------------------------------------------------- 読み込み
 
-// 離れるときに残す、開き方・出す指標・スクロールの位置（history.state の mindmap）。src は描いたデータで、データが変わったら（公開し直したら）使わない
+// 離れるときに残す、開き方・出す指標・スクロールの位置（history.state の jukeizu）。src は描いたデータで、データが変わったら（公開し直したら）使わない
 interface Saved { src: string; open: number[]; show: string[]; x: number; y: number }
 const savedOf = (src: string): Saved | null => {
-  const s = (history.state as { mindmap?: Saved } | null)?.mindmap;
+  const s = (history.state as { jukeizu?: Saved } | null)?.jukeizu;
   return s && s.src === src ? s : null;
 };
 
-for (const tree of document.querySelectorAll<HTMLElement>('[data-mindmap]')) void init(tree);
+for (const tree of document.querySelectorAll<HTMLElement>('[data-jukeizu]')) void init(tree);
 
 async function init(tree: HTMLElement) {
   const box = tree.closest<HTMLElement>('.mm-box')!;
@@ -99,7 +105,7 @@ async function init(tree: HTMLElement) {
   const rootBox = box.querySelector<HTMLElement>('.mm-root')!;
   const depth = document.querySelector<HTMLSelectElement>(`select[data-tree-depth][aria-controls="${tree.id}"]`);
 
-  // 出す指標。データを待たずに動かす。選び直したら線を引き直す（描いたあとだけ）
+  // 出す指標。データを待たずに動かす。選び直すと枝の列の高さが変わるので、線を引き直す（描いたあとだけ）
   let ready = false;
   const show = treeShow(tree, () => { if (ready) draw(); });
 
@@ -109,7 +115,7 @@ async function init(tree: HTMLElement) {
     data = await getJsonOr<TreeData>(src, tree.dataset.fallback!);
   } catch {
     tree.removeAttribute('aria-busy');
-    if (msg) msg.textContent = 'マインドマップを読み込めませんでした。時間をおいて、ページを再読み込みしてください。';
+    if (msg) msg.textContent = '樹形図を読み込めませんでした。時間をおいて、ページを再読み込みしてください。';
     return;
   }
   // 左右の枝の並びは、根の後ろに右・左の順に置く（読み上げの順を将来像の順にする。左の側は CSS の order で根の左に出す）
@@ -119,20 +125,19 @@ async function init(tree: HTMLElement) {
   tree.setAttribute('role', 'tree');
 
   // ---------------------------------------------------------------- 枝
-  // 木の枝（指標の枝は除く）。box は枝の枠、item はフォーカスする名前、ul は子の並び（下の段の無い取組は null）、inds は子の指標の枝の枠。
+  // 木の枝。box は枝の枠（指標は含まない。線はここから引く）、item はフォーカスする名前、ul は子の並び（下の段の無い取組は null）。
   // level は将来像が 0。left は根の左の側の枝
-  interface Row { li: HTMLLIElement; box: HTMLElement; item: HTMLElement; tg: HTMLButtonElement | null; ul: HTMLUListElement | null; kids: Row[]; inds: HTMLElement[]; parent: Row | null; level: number; left: boolean; open: boolean }
+  interface Row { li: HTMLLIElement; box: HTMLElement; item: HTMLElement; tg: HTMLButtonElement | null; ul: HTMLUListElement | null; kids: Row[]; parent: Row | null; level: number; left: boolean; open: boolean }
   const rowOf = new Map<Element, Row>(); // 枠・名前・li から枝へ
   const nodes: Row[] = []; // 開け閉めできる枝（報告書の順）
   const build = (ul: Element, parent: Row | null, level: number, left: boolean): Row[] => {
-    const rs = [...ul.querySelectorAll<HTMLLIElement>(':scope > li:not(.mm-ind)')].map((li) => {
-      const b = li.querySelector<HTMLElement>(':scope > .mm-n')!;
+    const rs = [...ul.querySelectorAll<HTMLLIElement>(':scope > li')].map((li) => {
+      const b = li.querySelector<HTMLElement>(':scope > .mm-g > .mm-n')!;
       const sub = li.querySelector<HTMLUListElement>(':scope > ul');
-      const r: Row = { li, box: b, item: b.querySelector<HTMLElement>('[role="treeitem"]')!, tg: b.querySelector('.mm-tg'), ul: sub, kids: [], inds: [], parent, level, left, open: false };
+      const r: Row = { li, box: b, item: b.querySelector<HTMLElement>('[role="treeitem"]')!, tg: b.querySelector('.mm-tg'), ul: sub, kids: [], parent, level, left, open: false };
       rowOf.set(li, r).set(b, r).set(r.item, r);
       if (sub) {
         nodes.push(r);
-        r.inds = [...sub.querySelectorAll<HTMLElement>(':scope > .mm-ind > .mm-n')];
         r.kids = build(sub, r, level + 1, left);
       }
       return r;
@@ -169,7 +174,6 @@ async function init(tree: HTMLElement) {
     const out: string[] = [];
     // a の外側の縁の真ん中から、b の内側の縁の真ん中へ（left は左の側。左右が逆になる）
     const curve = (a: HTMLElement, b: HTMLElement, cls: string, left: boolean) => {
-      if (!b.offsetParent) return; // 隠した指標
       const pa = at(a);
       const pb = at(b);
       const x1 = left ? pa.x : pa.x + a.offsetWidth;
@@ -179,12 +183,11 @@ async function init(tree: HTMLElement) {
       const mx = (x1 + x2) / 2;
       out.push(`<path class="${cls}" d="M${r1(x1)} ${r1(y1)}C${r1(mx)} ${r1(y1)} ${r1(mx)} ${r1(y2)} ${r1(x2)} ${r1(y2)}"/>`);
     };
-    // 線の太さは、計画から将来像へ（l0）・将来像から基本施策へ（l1）を太くし、指標へ（li）は細い点線にする（pages/mokuji/mindmap.astro の CSS）
+    // 線の太さは、計画から将来像へ（l0）・将来像から基本施策へ（l1）を太くする（pages/mokuji/jukeizu.astro の CSS）
     for (const r of roots) curve(rootBox, r.box, 'l0', r.left);
     const walk = (rs: Row[]) => {
       for (const r of rs) {
         if (!r.open) continue;
-        for (const b of r.inds) curve(r.box, b, 'li', r.left);
         for (const k of r.kids) curve(r.box, k.box, r.level === 0 ? 'l1' : 'l2', r.left);
         walk(r.kids);
       }
@@ -247,7 +250,7 @@ async function init(tree: HTMLElement) {
     if (!open) return;
     const view = scroller.getBoundingClientRect();
     const box = r.box.getBoundingClientRect();
-    const kids = [...r.kids.map((k) => k.box), ...r.inds].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect());
+    const kids = r.kids.map((k) => k.box.parentElement!.getBoundingClientRect());
     // はみ出したぶん（over）だけ、押した枝が箱から出ない範囲（room）ですべらせる
     const [over, room, dir] = r.left
       ? [view.left + 16 - Math.min(...kids.map((k) => k.left)), view.right - 16 - box.right, -1]
@@ -359,7 +362,7 @@ async function init(tree: HTMLElement) {
   scroller.addEventListener('pointercancel', release);
 
   // ---------------------------------------------------------------- はじめの開き方
-  // はじめに選んである深さまで開く（pages/mokuji/mindmap.astro の START。読み直したときにブラウザが戻した選択は使わない）。
+  // はじめに選んである深さまで開く（pages/mokuji/jukeizu.astro の START。読み直したときにブラウザが戻した選択は使わない）。
   // bfcache を使わずに戻ったときは、離れたときの開き方・出す指標にする
   const startDepth = Number([...(depth?.options ?? [])].find((o) => o.defaultSelected)?.value ?? 0);
   const saved = savedOf(src);
@@ -378,7 +381,7 @@ async function init(tree: HTMLElement) {
     scroller.scrollLeft = saved.x;
     window.scrollTo(0, saved.y);
   } else {
-    // # の行き先（/mokuji/mindmap/#s-1-1-a-1 など）が図の中にあれば、親を開いてそこへ動く
+    // # の行き先（/mokuji/jukeizu/#s-1-1-a-1 など）が図の中にあれば、親を開いてそこへ動く
     const id = hashId();
     const target = id ? document.getElementById(id) : null;
     const r = target ? rowOf.get(target) : undefined;
@@ -394,6 +397,6 @@ async function init(tree: HTMLElement) {
   // 離れるときに、開き方とスクロールの位置を残す
   window.addEventListener('pagehide', () => {
     const state: Saved = { src, open: nodes.flatMap((r, i) => (r.open ? [i] : [])), show: [...show.shows], x: scroller.scrollLeft, y: window.scrollY };
-    history.replaceState({ ...(history.state as object | null), mindmap: state }, '');
+    history.replaceState({ ...(history.state as object | null), jukeizu: state }, '');
   });
 }

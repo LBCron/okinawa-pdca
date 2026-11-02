@@ -1,0 +1,174 @@
+---
+import Base from '../../layouts/Base.astro';
+import Term from '../../components/Term.astro';
+import ExtLink from '../../components/ExtLink.astro';
+import TreeOptions from '../../components/TreeOptions.astro';
+import TreeViews from '../../components/TreeViews.astro';
+import { LATEST, yearLong, planTreeCounts } from '../../lib/data.ts';
+import { TREE_DATA_FALLBACK, treeDataPath } from '../../lib/tree-data.ts';
+import { LINKS } from '../../lib/links.ts';
+import { fmt } from '../../lib/format.ts';
+
+// 計画の樹形図。計画の目次（pages/mokuji.astro）と同じ木（将来像 → 基本施策 → 施策展開 → 施策 → 主な取組）を、
+// 真ん中の基本計画から左右へ枝分かれする図で見せる。データも目次と同じ JSON（lib/tree-data.ts）で、ブラウザのスクリプト（scripts/jukeizu.ts）が描く。
+// 横に広がる図なので、ページの幅の上限を外し（Base の wide）、図は箱（ステッカー）に入れずに、画面の幅いっぱいの白い地に置く。
+// - 指標: 主要指標は基本施策の、成果指標は施策の、活動指標は主な取組の、枝の枠のすぐ下（同じ列）に並べる（子の列には置かない）。
+//   計画の3つの段（docs/design.md の1章）とその物差しを一緒に見せ、枝をたどると段ごとの物差しが続いて見えることを、このページの見どころにする。
+//   指標どうしは線で結ばない（県が決めていない結び付きになるため）。値や達成率も出さない（形を見るページにし、良い・悪いの一覧にしない）。
+//   どの指標を出すかは目次と同じく選べ（components/TreeOptions.astro）、はじめは3つとも出す。
+// - 左右の分け方: 将来像を報告書の順に、前を右・後ろを左に分ける。どこで分けるかは、左右の施策の数がいちばん近くなる所（scripts/jukeizu.ts）。
+//   どちらの側も上から順に並べる（読み上げ・キーボードの順も 1〜5 のまま。左の側は CSS の order で根の左に置く）。
+// - 並べ方: 行（li）を横の flex にして、枝の列（.mm-g。枠と指標）の外側（右の側は右、左の側は左）に子の並び（ul。縦の flex）を置き、
+//   枝の列を子の並びの上下の真ん中に置く。列の幅を階層ごとに決めて、同じ階層の枝を縦の列にそろえる。
+//   枝と子を結ぶ線は、描いたあとの枝の枠の場所から SVG の曲線で引く（scripts/jukeizu.ts）。
+// - 枝の枠の外側の丸を押すと開け閉めする。閉じているときは丸にすぐ下の数を、開いているときは「−」を出す。
+//   名前はそれぞれのページへのリンクで、施策展開（ページが無い）は枠のどこを押しても開け閉めする。ほかの枝も、名前の外を押すと開け閉めする。
+// - 図が画面より広いときは、横にすべらせる（マウスでは地をつかんで動かせる）。はじめは根を真ん中に置く。
+//   開け閉めしても押した枝が画面の同じ場所に残るように、スクロールを合わせる。
+// - キーボードと読み上げでは、目次と同じく木（role="tree"）として動かす。
+// はじめに選んである「開く深さ」（components/TreeOptions.astro の DEPTHS の何番目か）。将来像までを出し、計画から5つに分かれる形を最初に見せる
+const START = 0;
+const n = planTreeCounts();
+// 目次と同じデータ。名前に中身のハッシュが付く（lib/tree-data.ts）
+const dataPath = treeDataPath();
+---
+<Base wide title="計画の樹形図" description={`新・沖縄21世紀ビジョン基本計画から、${n.vision}つの将来像・${n.kihon}の基本施策・${n.tenkai}の施策展開・${n.shisaku}の施策・${fmt(n.torikumi)}件の主な取組（${yearLong(LATEST)}）へ枝分かれする樹形図。基本施策には主要指標、施策には成果指標、取組には活動指標を並べ、段ごとの物差しを枝をたどって見られます。`}>
+  {/* 図のデータを、ページのスクリプトが届くのを待たずに読み始める（目次と同じファイルなので、目次を見たあとはキャッシュから読む） */}
+  <link slot="head" rel="preload" href={dataPath} as="fetch" crossorigin="anonymous" />
+  <h1>計画の樹形図</h1>
+  <p class="secondary lead mm-lead">
+    「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>の基本計画が、{n.vision}つの<Term word="将来像" />から、{n.kihon}の<Term word="基本施策" />、{n.tenkai}の<Term word="施策展開" />、{n.shisaku}の<Term word="施策" />、{fmt(n.torikumi)}件の<Term word="主な取組" />へと枝分かれする形です。基本施策には<Term word="主要指標" />（{n.shuyou}）、施策には<Term word="成果指標" />（{n.seika}）、主な取組には<Term word="活動指標" />を並べているので、枝をたどると、計画の段ごとに何をはかっているかが続けて見られます。
+  </p>
+  <TreeViews current="jukeizu" />
+  <div class="filters mm-opts">
+    <TreeOptions tree="plan-jukeizu" start={START} show={['shuyou', 'seika', 'katsudou']} />
+  </div>
+  <div class="mm-box">
+    <span class="key-hint mm-hint" aria-hidden="true">矢印キーで枝を移り、開け閉めできます</span>
+    <p class="mm-msg small secondary" role="status">樹形図を読み込んでいます…</p>
+    <div class="mm-scroll">
+      {/* 木（role="tree" はスクリプトが描いてから付ける）。左右の枝の並び（ul.mm-side）は、根の後ろにスクリプトが足す */}
+      <div class="mm-row mm" id="plan-jukeizu" data-jukeizu aria-label="計画の樹形図。新・沖縄21世紀ビジョン基本計画から枝分かれします。上下の矢印キーで枝を移り、左右の矢印キーかスペースで開け閉めし、Enter でページを開きます" aria-busy="true" data-src={dataPath} data-fallback={TREE_DATA_FALLBACK}>
+        <svg class="mm-lines" aria-hidden="true" focusable="false"></svg>
+        <p class="mm-root" aria-hidden="true">新・沖縄21世紀ビジョン基本計画</p>
+      </div>
+    </div>
+    <noscript><p class="small mm-nojs">樹形図の表示には JavaScript が必要です。<a href="/shisaku/">施策をさがす</a>・<a href="/future/">5つの将来像</a>から、それぞれの施策・取組を見られます。</p></noscript>
+  </div>
+  <p class="small secondary mm-note">施策・指標・主な取組は{yearLong(LATEST)}の報告にあるものです。主要指標は、県の概要版の数え方（男女別などを分けて数える）です。主な取組は延べ件数で、いくつかの施策に載る取組は、それぞれの施策の下に出ます。</p>
+</Base>
+
+<style is:global>
+  /* 樹形図の見た目。枝はスクリプト（scripts/jukeizu.ts）が描くので、ページの <style>（scoped）では当たらない。.mm-box の下に書いた全体の CSS にする */
+
+  /* 頭の文は、画面いっぱいに広げると読みにくいので、ほかのページの本文の幅にとどめる */
+  .mm-lead, .mm-note { max-width: 1008px; }
+  /* 開く深さと指標。小さく1行に並べる（箱に入れない）。スクリプトでしか動かないので、スクリプトが動くとき（html.js）だけ出す */
+  .filters.mm-opts { flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
+  :root:not(.js) .mm-opts { display: none; }
+
+  /* 図の地。箱（ステッカー）にはせず、本文の左右の余白（.wrap.wide の padding）の外まで、画面の幅いっぱいに白く敷く。
+     図が広いときは、この中で横にすべらせる（ページは横にすべらせない）。マウスでは地をつかんで動かす（scripts/jukeizu.ts）。
+     --gap は枝と子の列のあいだ（線を引く場所）、--kb は開け閉めの丸の大きさ、--w0〜--w3 は階層ごとの列の幅、--wl は取組の列の幅の上限 */
+  .mm-box {
+    --gap: 46px; --kb: 24px; --w-root: 8.5rem; --w0: 14rem; --w1: 15rem; --w2: 13rem; --w3: 14rem; --wl: 19rem;
+    position: relative; margin: 16px -24px 0; background: var(--paper);
+  }
+  .mm-box .mm-msg { margin: 0; padding: 16px 24px 0; }
+  .mm-box .mm-msg[hidden] { display: none; }
+  .mm-box .mm-nojs { margin: 0; padding: 16px 24px; }
+  :root:not(.js) .mm-box .mm-msg, :root:not(.js) .mm-box .mm-scroll { display: none; }
+  .mm-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  @media (pointer: fine) {
+    .mm-scroll { cursor: grab; }
+    .mm-scroll .mm-g { cursor: auto; }
+    .mm-scroll.mm-drag { cursor: grabbing; user-select: none; }
+  }
+  /* 図の全体（木）。線の座標は、ここ（position: relative）を基にした枝の場所（offsetLeft・offsetTop）。画面より狭いときは真ん中に置く。
+     はじめの深さ（将来像まで）の図がおさまる高さを、データが届く前から取っておく（描いたあとにずれないように） */
+  .mm-row { position: relative; isolation: isolate; display: flex; align-items: center; width: max-content; min-height: 400px; margin-inline: auto; padding: 32px 28px; }
+  .mm-lines { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .mm-lines path { fill: none; stroke: var(--hair); stroke-width: 2; stroke-linecap: round; }
+  .mm-lines .l0 { stroke-width: 4; }
+  .mm-lines .l1 { stroke-width: 3; }
+
+  /* 根（計画そのもの）。開け閉めはしない */
+  .mm-root {
+    flex: none; width: var(--w-root); margin: 0; padding: 10px 14px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; line-height: 1.5; color: var(--paper); background: var(--line); border-radius: 16px;
+  }
+
+  /* 枝の並び。li を横に、ul を縦に並べ、枝の列を子の並びの上下の真ん中に置く。左の側（.mm-l）は左右を入れ替え、根の左に置く */
+  .mm-side, .mm-side ul { list-style: none; margin: 0; padding: 0 0 0 var(--gap); display: flex; flex-direction: column; justify-content: center; gap: var(--vg, 4px); }
+  .mm ul[hidden] { display: none; }
+  .mm-side { --vg: 16px; }
+  .mm-side.mm-l { order: -1; }
+  .mm-side.mm-l, .mm-l ul { padding: 0 var(--gap) 0 0; align-items: flex-end; }
+  .mm-l .mm-li { flex-direction: row-reverse; }
+  .mm .lv0 > ul { --vg: 10px; }
+  .mm .lv1 > ul { --vg: 8px; }
+  .mm .lv2 > ul { --vg: 6px; }
+  .mm .lv3 > ul { --vg: 3px; }
+  .mm-li { display: flex; align-items: center; }
+  /* 枝の列（枠と、その下の指標）。幅は階層ごと */
+  .mm-g { flex: none; box-sizing: border-box; min-width: 0; }
+  .mm .lv0 > .mm-g { width: var(--w0); }
+  .mm .lv1 > .mm-g { width: var(--w1); }
+  .mm .lv2 > .mm-g { width: var(--w2); }
+  .mm .lv3 > .mm-g { width: var(--w3); }
+  .mm .lv4 > .mm-g { max-width: var(--wl); }
+  .mm-n { position: relative; line-height: 1.5; }
+  .mm .no { flex: none; white-space: nowrap; font-weight: 700; color: var(--ink-2); margin-right: 5px; }
+
+  /* 将来像は帯（目次と同じ形） */
+  .mm .lv0 .sz-ribbon { padding: 3px 18px 3px 4px; gap: 8px; }
+  .mm-l .lv0 .sz-ribbon { padding-left: 16px; }
+  .mm .lv0 .sz-ribbon .badge-sz { width: 1.9em; height: 1.9em; font-size: 0.9rem; }
+  .mm .lv0 .sz-ribbon .name-link { font-family: var(--font-display); font-size: 0.9375rem; }
+  /* 基本施策・施策展開・施策は角の丸い枠。下の段ほど細く淡くする */
+  .mm .box { display: flex; align-items: baseline; padding: 5px 16px 5px 10px; background: var(--paper); border-radius: 12px; }
+  .mm .lv1 > .mm-g > .box { font-size: 0.9375rem; border: 2px solid var(--line); }
+  .mm .lv2 > .mm-g > .box { font-size: 0.875rem; border: 1.5px solid var(--ink-2); border-radius: 10px; cursor: pointer; }
+  .mm .lv3 > .mm-g > .box { font-size: 0.875rem; border: 1.5px solid var(--hair); border-radius: 10px; }
+  .mm-l .box { padding: 5px 10px 5px 16px; }
+  .mm .lv2 > .mm-g > .box:hover { background: var(--sky); }
+  .mm .tk-name { font-family: var(--font-display); font-weight: 700; }
+  /* 取組（下に段の無い枝）は枠を付けない。番号は右にそろえる */
+  .mm .leaf { display: flex; align-items: baseline; padding: 1px 4px; font-size: 0.8125rem; }
+  .mm .leaf .no { min-width: 1.2em; text-align: right; font-family: var(--font-num); font-weight: 600; }
+  .mm .leaf .nm { min-width: 0; }
+  .mm .common { margin-left: 8px; font-size: 0.75rem; color: var(--ink-2); white-space: nowrap; }
+
+  /* 枝がはかる指標。枝の枠のすぐ下に、枠から下ろした点線に沿って並べる（左の側は右の縁に沿う）。
+     札は指標の種類の名前（主要指標・成果指標・活動指標）で、目次の指標の札と同じ形 */
+  .mm-inds { display: grid; gap: 2px; margin: 3px 0 0 14px; padding: 2px 0 2px 8px; border-left: 2px dotted var(--hair); font-size: 0.75rem; line-height: 1.5; }
+  .mm-l .mm-inds { margin: 3px 14px 0 0; padding: 2px 8px 2px 0; border-left: 0; border-right: 2px dotted var(--hair); }
+  .mm .lv4 .mm-inds { margin-left: calc(1.2em + 9px); }
+  .mm-i { margin: 0; }
+  .mm .ind {
+    margin-right: 5px; font-family: var(--font-display); font-size: 0.6875rem; font-weight: 700; line-height: 1.5; color: var(--ink-2); white-space: nowrap;
+    border: 1.5px solid var(--ink-2); border-radius: 6px; padding: 0 5px; vertical-align: 0.05em;
+  }
+  /* 出す指標で選んでいない種類は隠す（scripts/tree-show.ts が木の data-show に選んだ種類を入れる） */
+  .mm:not([data-show~='shuyou']) [data-ind='shuyou'],
+  .mm:not([data-show~='seika']) [data-ind='seika'],
+  .mm:not([data-show~='katsudou']) [data-ind='katsudou'] { display: none; }
+
+  /* 開け閉めの丸。枝の枠の外側（右の側は右、左の側は左）の縁の真ん中に置く。閉じているときはすぐ下の数、開いているときは「−」。押せる所は丸より広く取る */
+  .mm .mm-tg {
+    position: absolute; right: calc(var(--kb) / -2); top: 50%; translate: 0 -50%; z-index: 1; display: grid; place-items: center;
+    width: var(--kb); height: var(--kb); padding: 0; font: inherit; font-family: var(--font-num); font-size: 0.75rem; font-weight: 600; line-height: 1;
+    color: var(--ink); background: var(--paper); border: 2px solid var(--line); border-radius: 50%; cursor: pointer;
+  }
+  .mm-l .mm-tg { right: auto; left: calc(var(--kb) / -2); }
+  .mm .mm-tg::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; }
+  .mm .mm-tg:hover { background: var(--sky); }
+  .mm .mm-tg[aria-expanded='true'] .mm-cnt { display: none; }
+  .mm .mm-tg[aria-expanded='true']::before { content: ''; width: 10px; height: 2px; border-radius: 1px; background: var(--ink); }
+
+  /* キーボードで図に止まったときだけ、矢印キーで動かせることを地の右上に出す（目次と同じ。読み上げは木の aria-label で伝える） */
+  .mm-box .mm-hint { top: 10px; right: 24px; z-index: 2; }
+  .mm-box:has(.mm :focus-visible) .mm-hint { display: block; }
+  /* # の行き先（/mokuji/jukeizu/#s-1-1-a-1 など）は、画面の上に少し余白を取る */
+  .mm-li[id] { scroll-margin-top: 16px; }
+</style>

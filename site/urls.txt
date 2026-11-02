@@ -1924,7 +1924,7 @@
 /kihon/5-5/
 /map/
 /mokuji/
-/mokuji/mindmap/
+/mokuji/jukeizu/
 /pdca/
 /shihyou/
 /shihyou/1-1-a-1/9396c87b/

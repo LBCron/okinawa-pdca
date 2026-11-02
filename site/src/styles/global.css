@@ -781,7 +781,7 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
   /* 畳んだ内容を押して開いたとき（scripts/disclosure.ts が details に m-opening を付ける）と「さらに表示」で出した行（scripts/show-more.ts が m-in を付ける）は、すっと出す。
      高さは動かさない（中身は一度に場所を取り、見た目だけを変える）。# の行き先・印刷で開いたときは動かさない */
   details.m-opening[open] > :not(summary), .m-in { animation: m-drop 0.18s ease-out; }
-  /* マインドマップ（pages/mokuji/mindmap.astro）の枝を押して開いたときは、子の枝を開いた枝の側（右の側は左、左の側は右）からすっと出す（scripts/mindmap.ts が li に m-opening を付ける） */
+  /* 計画の樹形図（pages/mokuji/jukeizu.astro）の枝を押して開いたときは、子の枝を開いた枝の側（右の側は左、左の側は右）からすっと出す（scripts/jukeizu.ts が li に m-opening を付ける） */
   .mm-li.m-opening > ul { animation: m-slide 0.2s ease-out; }
   .mm-l .mm-li.m-opening > ul { animation-name: m-slide-l; }
   /* ページ内の目次が上に貼り付いたときに出す、何のページかの1行（scripts/toc.ts の stuck）。場所は一度に取り（本文には重ねるのでずれない）、中身をすっと出す */

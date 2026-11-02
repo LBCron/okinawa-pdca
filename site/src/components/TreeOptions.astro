@@ -1,11 +1,12 @@
 ---
-// 計画の木（目次 /mokuji/・マインドマップ /mokuji/mindmap/）の頭の「開く深さ」と「指標」。木の id（tree）の form の中に置く。
-// 開く深さは scripts/tree.ts・scripts/mindmap.ts が、指標の吹き出しは scripts/tree-show.ts が動かす
+// 計画の木（目次 /mokuji/・樹形図 /mokuji/jukeizu/）の頭の「開く深さ」と「指標」。木の id（tree）の form の中に置く。
+// 開く深さは scripts/tree.ts・scripts/jukeizu.ts が、指標の吹き出しは scripts/tree-show.ts が動かす
 interface Props {
   tree: string; // 木の id
   start: number; // はじめに選んである深さ（DEPTHS の何番目か）
+  show?: string[]; // はじめに出す指標の種類（SHOW の key。書かなければ SHOW の on）
 }
-const { tree, start } = Astro.props;
+const { tree, start, show } = Astro.props;
 // 「開く深さ」の選択肢。i 番目は、i より上の階層（将来像が 0）を開き、その下は閉じる
 const DEPTHS = ['将来像だけ', '基本施策まで', '施策展開まで', '施策まで', '主な取組まで'];
 // 出す指標の選択肢（key は木の data-show・行の data-ind の値。short はボタンに出す短い名前）
@@ -13,7 +14,7 @@ const SHOW = [
   { key: 'shuyou', name: '主要指標', short: '主要', on: true },
   { key: 'seika', name: '成果指標', short: '成果', on: true },
   { key: 'katsudou', name: '活動指標', short: '活動', on: false },
-];
+].map((x) => ({ ...x, on: show ? show.includes(x.key) : x.on }));
 ---
 <label class="tree-depth">開く深さ
   {/* 1つずつ開け閉めして、どの深さにもそろっていないときは「ばらばら」（選べない）にする */}

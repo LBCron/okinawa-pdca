@@ -20,7 +20,7 @@ import appleTouchIcon from '../assets/apple-touch-icon.png';
 // jump はシェア用のページ（lib/routes.ts の SHARE_ROUTES）の、指標を見せる場所の URL。検索に載せず（noindex）、開いた人をすぐにそこへ移す。
 // SNS がリンクのカードを作るときはスクリプトを動かさないので、このページの og:image（指標のカード）が使われる。og:url と canonical もこのページの URL のままにする
 // （Facebook は og:url の URL を読み直すため）
-// wide は、ヘッダー・本文・フッターの幅の上限（.wrap の max-width）を外して画面いっぱいに使うページ（横に広がる図を見せる、計画のマインドマップ）
+// wide は、ヘッダー・本文・フッターの幅の上限（.wrap の max-width）を外して画面いっぱいに使うページ（横に広がる図を見せる、計画の樹形図）
 interface Props { title?: string; description?: string; canonical?: boolean; ogType?: 'website' | 'article'; jump?: string; wide?: boolean }
 const { title, description = '沖縄県が毎年公表している「沖縄県PDCA実施結果」を、施策ごとに見やすく整理した非公式サイトです。', canonical = true, ogType = 'website', jump, wide = false } = Astro.props;
 const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name} | ${SITE.tagline}`;
