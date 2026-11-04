@@ -26,12 +26,15 @@ import {
   YEARS, LATEST, yearLabel, yearLong, STATUSES, statusOf,
   getShisakuList, getShuyouGroups, getShuyouStatus, sourceLink, planParents, formerText, countStatuses,
 } from '../../lib/data.ts';
+import { honbunHrefOf } from '../../lib/honbun.ts';
 
 // URL は lib/routes.ts で決める（docs/site.md の 8章）
 export const getStaticPaths = ROUTES['kihon/[id]'];
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { k } = Astro.props;
+// 基本計画の本文の、この基本施策の見出し（出典の節からリンクする）
+const honbun = honbunHrefOf(k.id);
 const shisaku = getShisakuList().filter((s) => s.kihon_id === k.id);
 const src = k.source && sourceLink(k.source, k.page);
 
@@ -164,6 +167,7 @@ const rmCount = new Set(shisaku.flatMap((s) => kankoOfPdcaShisaku(s).map((r) => 
   <section aria-labelledby="source">
     <SecHead id="source" class="anchor">出典</SecHead>
     <p class="small">県の報告書での番号は<strong class="report-no">基本施策 {k.code}</strong>です。</p>
+    {honbun && <p class="small">この基本施策を決めた計画の文章: <a href={honbun}>新・沖縄21世紀ビジョン基本計画の本文（第4章 {k.code}）</a></p>}
     {src && <p class="small">{yearLong(LATEST)}: <ExtLink href={src.href}>総括報告書（{src.label}）</ExtLink>。主要指標の出典は、主要指標の「表で見る」の表にあります。</p>}
     {hSrc && <p class="small">県によるふりかえり（令和4〜6年度）: <ExtLink href={hSrc.href}>{hSrc.label.replace(/ \d+ページ$/, '')} {h.page}〜{h.page_end}ページ</ExtLink></p>}
     {renamed.length > 0 && <p class="small">{renamed.map((x) => `主要指標「${x.name}」は、${formerText(x.fs)}という名前で載っています。`).join('')}同じ指標として<a href="/data/#kazoekata">年度をつないでいます</a>。</p>}

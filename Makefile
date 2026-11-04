@@ -52,6 +52,7 @@ extract:
 	$(COMPOSE) run --rm tools python scripts/extract_kanko.py
 	$(COMPOSE) run --rm tools python scripts/extract_ikkatsu.py
 	$(COMPOSE) run --rm tools python scripts/extract_hyoka.py
+	$(COMPOSE) run --rm tools python scripts/extract_kihon.py
 	$(COMPOSE) run --rm tools python scripts/cross_read.py
 	python3 scripts/check_extracted.py
 	python3 scripts/report_issues.py

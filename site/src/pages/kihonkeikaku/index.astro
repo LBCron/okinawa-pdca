@@ -1,0 +1,9 @@
+---
+// 基本計画の本文のトップ。目次と「はじめに」（components/Honbun.astro）
+import Honbun from '../../components/Honbun.astro';
+import { honbunPartOf } from '../../lib/honbun.ts';
+
+const part = honbunPartOf('');
+if (!part) throw new Error('基本計画の本文の「はじめに」が無い（data/extracted/kihon/honbun.json）');
+---
+<Honbun part={part} />

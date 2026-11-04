@@ -26,3 +26,4 @@ import './charts.ts';
 import './scroll-hint.ts';
 import './table-scroll.ts';
 import './toc.ts';
+import './honbun.ts';

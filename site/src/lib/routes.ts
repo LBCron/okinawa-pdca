@@ -6,6 +6,7 @@ import path from 'node:path';
 import { DEPTS, getBudgetProjects, getKihonList, getSeikaGroups, getShisakuList, getShouraizou, getShuyouGroups, getTorikumiGroups, keySlug } from './data.ts';
 import { getActivityShares } from './katsudou.ts';
 import { kankoTenkaiList } from './plans.ts';
+import { honbunParts } from './honbun.ts';
 import { getThemes } from './themes.ts';
 
 // キーは src/pages の中のファイルのパス（拡張子なし）。各ページは export const getStaticPaths = ROUTES['shisaku/[id]'] のように使う
@@ -15,6 +16,7 @@ export const ROUTES = {
   'katsudou/[shisaku]/[slug]': () => getActivityShares().map((a) => ({ params: { shisaku: a.torikumi.shisaku.id, slug: keySlug(a.key) }, props: { a } })),
   'keikaku/kanko/[tenkai]': () => kankoTenkaiList().map((t) => ({ params: { tenkai: t.id }, props: { t } })),
   'kihon/[id]': () => getKihonList().map((k) => ({ params: { id: k.id }, props: { k } })),
+  'kihonkeikaku/[part]': () => honbunParts().filter((p) => p.slug).map((part) => ({ params: { part: part.slug }, props: { part } })),
   'shihyou/[shisaku]/[slug]': () => getSeikaGroups().map((g) => ({ params: { shisaku: g.shisaku.id, slug: keySlug(g.key) }, props: { g } })),
   'shisaku/[id]': () => getShisakuList().map((s) => ({ params: { id: s.id }, props: { s } })),
   'shuyou/[kihon]/[slug]': () => getShuyouGroups().map((g) => ({ params: { kihon: g.kihon.id, slug: keySlug(g.key) }, props: { g } })),

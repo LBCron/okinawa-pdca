@@ -123,6 +123,11 @@ RELATED_SOURCES = [
     Source("hyoka", "新・沖縄21世紀ビジョン基本計画 評価検証報告書",
            "https://www.pref.okinawa.jp/kensei/shisaku/1014211/1014223/1039989.html",
            PREF_HOSTS, fiscal_year=2024),
+    # 新・沖縄21世紀ビジョン基本計画（R4〜R13）の本体。サイトの「基本計画を読む」で本文を見せる。
+    # パンフレット・概要・資料編は取らない（本体のリンク文言は「…（沖縄振興計画） （PDF 3.8MB）」）。計画の始まりの R4 として保存する
+    Source("kihon", "新・沖縄21世紀ビジョン基本計画",
+           "https://www.pref.okinawa.jp/kensei/shisaku/1014211/1014223/1014250/index.html",
+           PREF_HOSTS, file_match=r"\(沖縄振興計画\)\s*\(PDF", fiscal_year=2022),
 ]
 RELATED_SLUGS = {s.slug for s in RELATED_SOURCES}
 
