@@ -1,6 +1,8 @@
 ---
 // 基本計画の本文を全部載せた1つのページ。左に全体の目次、右に本文を置く（法令の全文のページのような形）。
-// 全文が1ページにあるので、ブラウザのページ内検索で全文を探せる。章ごとに画面の外は描かない（content-visibility。ページ内検索と # の行き先には描く）。
+// 全文が1ページにあるので、ブラウザのページ内検索で全文を探せる。
+// 画面の外の章を描かない（content-visibility）ことはしない。描くまでの高さが見積もりなので、目次から遠くの見出しへ跳ぶと、
+// 途中で章の高さが変わって行き先からずれて止まるため（全部を描いても重くはない）。
 // 目次は全部の見出しを入れ子で持ち、スクリプトが動くときは、章と、いま読んでいる見出しまでの段だけを開く（scripts/honbun.ts）。
 // スマホの幅では目次を本文の上の貼り付いた「目次」のボタンから開く（スクリプトが動かないときは、本文の前にそのまま出す）
 import Base from '../../../layouts/Base.astro';
@@ -25,8 +27,6 @@ for (const b of chapters.flatMap((c) => [c.head, ...c.blocks])) {
   lastPage = b.page;
 }
 const printedOf = (b: { page: number; printed?: number }) => (b.printed ? `${b.printed}ページ` : `PDFの${b.page}ページ`);
-// 章の字数。画面の外の章の高さの見積もりに使う（描くまでのスクロールバーの長さ。描いたあとは実際の高さを覚える）
-const charsOf = (blocks: KihonHonbunRow[]) => blocks.reduce((n, b) => n + ('text' in b ? b.text.length : 40), 0);
 // 箇条（「① …」「1) …」）の段落は、2行目以降を印の後ろにそろえる（県の PDF と同じぶら下げ）
 const LIST_ITEM = /^([①-⑳]|\d+\))/;
 // 沖縄県PDCA のページ（基本施策・施策）。施策展開のページは無いので付けない
@@ -71,7 +71,7 @@ const pdcaLink = (h: HonbunHeading) =>
       </header>
 
       {chapters.map((c) => (
-        <section class="hb-ch" style={`--chars: ${charsOf(c.blocks)}`} aria-labelledby={honbunAnchor(c.head.id)}>
+        <section class="hb-ch" aria-labelledby={honbunAnchor(c.head.id)}>
           {[c.head, ...c.blocks].map((b) => (
             <>
               {pageMarks.has(b) && <ExtLink class="hb-pg" href={pageHref(b.page)} title={`PDF の ${b.page}ページ目`}>{printedOf(b)}</ExtLink>}
@@ -133,8 +133,6 @@ const pdcaLink = (h: HonbunHeading) =>
   .hb-head { margin-bottom: 8px; }
   .hb-head h1 { margin: 0.1em 0 0.3em; }
   .hb-kicker { margin: 0; }
-  /* 章ごとに、画面の外は描かない。描くまでの高さは字数から見積もる（1字あたりの高さ。スマホは1行の字数が少ないので高くする） */
-  .hb-ch { content-visibility: auto; contain-intrinsic-block-size: auto calc(var(--chars) * 0.75px); }
   .hb-h { scroll-margin-top: 16px; }
   .hb-hlink { color: inherit; text-decoration: none; }
   .hb-hlink:hover { text-decoration: underline; text-decoration-color: var(--hair); }
@@ -160,7 +158,6 @@ const pdcaLink = (h: HonbunHeading) =>
   @media (max-width: 900px) {
     .hb { grid-template-columns: minmax(0, 1fr); margin-top: 8px; }
     .hb-nav { position: static; max-height: none; padding: 0; margin-bottom: 16px; }
-    .hb-ch { contain-intrinsic-block-size: auto calc(var(--chars) * 1.5px); }
     :global(:root.js) .hb-bar {
       display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
       margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 2px solid var(--hair);
@@ -184,6 +181,5 @@ const pdcaLink = (h: HonbunHeading) =>
   @media print {
     .hb { display: block; }
     .hb-nav, .hb-bar { display: none !important; }
-    .hb-ch { content-visibility: visible; }
   }
 </style>

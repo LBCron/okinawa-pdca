@@ -48,8 +48,8 @@ if (nav && open) {
     return hit < 0 ? null : links[hit].a;
   };
   let cur: HTMLAnchorElement | null = null;
-  const update = () => {
-    const next = current();
+  // いまの見出しを next にする。目次はその見出しまでの段だけを開き、scroll なら左の目次の中をリンクが見えるところまで動かす
+  const setCurrent = (next: HTMLAnchorElement | null, scroll: boolean) => {
     if (next === cur) return;
     cur?.removeAttribute('aria-current');
     for (const li of nav.querySelectorAll('li.open')) li.classList.remove('open');
@@ -57,20 +57,48 @@ if (nav && open) {
     for (let li = next?.closest('li'); li; li = li.parentElement?.closest('li')) li.classList.add('open');
     cur = next;
     if (now) now.textContent = next?.textContent ?? first;
-    // 左の目次の中で、リンクが見えるところまでだけ動かす
-    if (next && nav.scrollHeight > nav.clientHeight && !nav.classList.contains('open')) {
+    if (scroll && next && nav.scrollHeight > nav.clientHeight && !nav.classList.contains('open')) {
       const n = nav.getBoundingClientRect(), a = next.getBoundingClientRect();
       if (a.top < n.top + 40 || a.bottom > n.bottom - 40) nav.scrollTop += a.top - n.top - n.height / 3;
     }
   };
+  // 目次のリンクを押したあと、本文がその見出しまで動いているあいだは、通り過ぎる見出しで目次を開け閉めしない
+  // （開け閉めのたびに目次の高さが変わり、押したリンクが目次の中で跳ぶため）。押したリンクをすぐいまの見出しにし、
+  // スクロールが止まって（150ms 動かない）から、本文の位置でいまの見出しを決め直す
+  // 止まったとき、押した見出しが画面の上にあれば（すぐ下の見出しも上の線を越えていても）押した見出しのままにする
+  let jumping = 0;
+  let clicked: { a: HTMLAnchorElement; h: HTMLElement } | undefined;
+  const endJump = () => {
+    jumping = 0;
+    const top = clicked?.h.getBoundingClientRect().top;
+    setCurrent(clicked && top !== undefined && top > -10 && top <= LINE ? clicked.a : current(), true);
+    clicked = undefined;
+  };
+  nav.addEventListener('click', (e) => {
+    const a = e.target instanceof Element ? e.target.closest<HTMLAnchorElement>('a[href^="#"]') : null;
+    const target = a && links.find((l) => l.a === a);
+    if (!a || !target) return;
+    clicked = target;
+    // 開け閉めで目次の高さが変わっても、押したリンクは目次の中で同じ所にとどめる
+    const before = a.getBoundingClientRect().top;
+    setCurrent(a, false);
+    nav.scrollTop += a.getBoundingClientRect().top - before;
+    clearTimeout(jumping);
+    jumping = window.setTimeout(endJump, 600);
+  });
   let queued = false;
   window.addEventListener('scroll', () => {
+    if (jumping) {
+      clearTimeout(jumping);
+      jumping = window.setTimeout(endJump, 150);
+      return;
+    }
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
-      update();
+      setCurrent(current(), true);
     });
   }, { passive: true });
-  update();
+  setCurrent(current(), true);
 }

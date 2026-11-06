@@ -1,5 +1,5 @@
 // 新・沖縄21世紀ビジョン基本計画の本文（data/extracted/kihon。scripts/extract_kihon.py）を、ページで使う形にまとめる。
-// 本文は全部を1つのページ（/21-seiki-vision/kihon/）に載せ、ブラウザのページ内検索で全文を探せるようにする。章ごとにまとめ、画面の外の章は描かない（ページの style）
+// 本文は全部を1つのページ（/21-seiki-vision/kihon/）に載せ、ブラウザのページ内検索で全文を探せるようにする
 import { load } from './data.ts';
 import { once } from './memo.ts';
 import type { HonbunHeading, KihonHonbunRow } from './types.ts';
