@@ -184,6 +184,8 @@ small, .small { font-size: 0.875rem; }
 .site-by { color: var(--ink-2); text-decoration: none; white-space: nowrap; padding: 4px 0; }
 .site-by b { font-family: var(--font-display); color: var(--ink); text-decoration: underline; text-decoration-color: var(--hair); text-decoration-thickness: 2px; text-underline-offset: 0.25em; }
 .site-by:hover b { text-decoration-color: var(--pop); }
+/* サイドメニューを開くボタン（components/MenuButton.astro）は、1行目の右端に置く */
+.head-menu { margin-left: auto; }
 .site-nav { flex-basis: 100%; display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; padding: 4px 2px 6px; margin: 0 -2px; }
 .site-nav::-webkit-scrollbar { display: none; }
 .site-nav a {
@@ -195,7 +197,8 @@ small, .small { font-size: 0.875rem; }
 /* 計画の段ごとのまとまり（将来像・主要指標 / 施策・成果指標 など）のあいだの区切り（layouts/Base.astro の NAV） */
 .site-nav .nav-sep { flex: none; align-self: center; width: 2px; height: 18px; margin: 0 3px; border-radius: 1px; background: var(--hair); }
 /* スマホでは、ロゴの右に「タイトル＋版の板」「（非公式）by …」の2行をロゴの高さに収め、その下にナビを置く。
-   版の板がタイトルの横に入らない幅では、板を次の行に回す（ロゴは上下の真ん中に置いたまま） */
+   版の板がタイトルの横に入らない幅では、板を次の行に回す（ロゴは上下の真ん中に置いたまま）。
+   メニューのボタンは、タイトルの横を狭めないよう、ナビの行の右端に置く（ナビはその手前までで横にすべらせる） */
 @media (max-width: 720px) {
   .site-header .wrap { row-gap: 6px; }
   .site-id { flex-basis: 100%; position: relative; min-height: var(--mark-w); padding-left: calc(var(--mark-w) + var(--mark-gap)); align-content: center; gap: 0 6px; }
@@ -205,6 +208,8 @@ small, .small { font-size: 0.875rem; }
   .site-sub small { font-size: 0.8125rem; }
   .site-by { padding: 0; }
   .site-nav a { padding: 4px 6px; } /* 1画面に入る項目を増やす（いまのページの丸い枠の内側の余白だけ残す） */
+  .site-nav { flex: 1 1 0; min-width: 0; }
+  .head-menu { order: 1; margin-left: 0; }
 }
 /* 横にすべらせる帯（ヘッダーのナビ・ページ内の目次のリンクの並び）は、続きがある側の端をぼかす（scripts/scroll-hint.ts が more-l・more-r を付ける）。
    キーボードで移った項目がぼかしの下に隠れないよう、スクロールの止まる位置にぼかしの幅の余白を取る */
@@ -220,14 +225,60 @@ small, .small { font-size: 0.875rem; }
 .site-footer .foot-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 22px; }
 .site-footer .foot-links { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; }
 .site-footer .foot-by { margin: 16px 0 0; font-size: 0.75rem; }
+/* 作り手の1行が画面の幅いっぱいに折り返す狭い画面では、いちばん下まで来たときに右下に出る「ページの先頭へ」（.to-top）のぶん右を空ける */
+@media (max-width: 720px) { .site-footer .foot-by { padding-right: 56px; } }
 .site-footer .foot-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
-.foot-toggle {
-  display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 0.875rem; font-weight: 700; color: var(--ink);
+
+/* サイドメニュー（layouts/Base.astro の #site-menu、scripts/menu.ts）。画面の右の端から出す、高さいっぱいの板。
+   中身（.menu-in）で板の全面を覆う（外側を押したら閉じるのを、dialog そのものに当たったかで決めるため） */
+/* 線で囲んだ丸いボタン（メニューを開く・閉じる・年の書き方と配色の切り替え） */
+.line-btn, .menu-open {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 0.875rem; font-weight: 700; color: var(--ink);
   background: var(--paper); border: 2px solid var(--line); border-radius: 999px; padding: 4px 14px; min-height: 40px; cursor: pointer; white-space: nowrap;
 }
-/* 年の書き方と配色のボタン（フッター）はスクリプトでしか動かないので、スクリプトが動くとき（<head> のインラインスクリプトが html に js を付ける）だけ出す。
-   最初の描画から出しておく（あとから出すと、そのぶんずれる）。文字と記号は、いまの書き方・配色でないほうを選ぶ */
-:root:not(.js) .foot-toggles { display: none; }
+.menu-open { font-family: var(--font-display); }
+.menu-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+/* スマホの幅では印だけにする（名前は読み上げ用に残す） */
+@media (max-width: 720px) {
+  .menu-open { padding-inline: 8px; min-height: 36px; }
+  .menu-open .menu-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+/* メニューを開くボタンと、フッターの年の書き方と配色のボタンはスクリプトでしか動かないので、スクリプトが動くとき（<head> のインラインスクリプトが html に js を付ける）だけ出す。
+   最初の描画から出しておく（あとから出すと、そのぶんずれる） */
+:root:not(.js) :is(.menu-open, .foot-toggles) { display: none; }
+.site-menu {
+  position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(340px, calc(100vw - 48px)); max-width: none; height: 100dvh; max-height: none;
+  border: 0; border-left: 2.5px solid var(--line); background: var(--paper); color: var(--ink); box-shadow: -4px 0 0 var(--shadow); overscroll-behavior: contain;
+}
+.site-menu::backdrop { background: rgb(15 19 48 / 0.4); }
+.menu-in {
+  min-height: 100%; display: flex; flex-direction: column; gap: 14px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(28px + env(safe-area-inset-bottom, 0px));
+}
+.menu-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.menu-h { margin: 0; font-size: 1.15rem; }
+.site-menu ul { list-style: none; margin: 0; padding: 0; }
+/* ナビはヘッダーと同じまとまりで、まとまりのあいだに細い線を引く（layouts/Base.astro の NAV） */
+.menu-nav > li + li { border-top: 1.5px solid var(--hair); margin-top: 4px; padding-top: 4px; }
+.site-menu nav a, .menu-more a {
+  display: flex; align-items: center; min-height: 40px; padding: 4px 12px; border: 2px solid transparent; border-radius: 12px;
+  font-family: var(--font-display); font-size: 0.9375rem; color: var(--ink); text-decoration: none;
+}
+.site-menu nav a:hover, .menu-more a:hover { background: var(--sky); }
+.site-menu a[aria-current="page"] { border-color: var(--line); background: var(--sky); font-weight: 700; box-shadow: 2px 2px 0 var(--shadow); }
+.menu-sec { border-top: 2px solid var(--line); padding-top: 10px; }
+.menu-sub { margin: 0 0 4px; font-size: 0.8125rem; color: var(--ink-2); }
+.menu-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+/* 右下の「ページの先頭へ」（scripts/to-top.ts）。上にスクロールしたときだけ出す。ほかの押せるステッカーと同じ太い線と硬い影 */
+.to-top {
+  position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: grid; place-items: center; width: 48px; height: 48px; padding: 0; cursor: pointer; color: var(--ink);
+  background: var(--paper); border: 2.5px solid var(--line); border-radius: 50%; box-shadow: 3px 3px 0 var(--shadow);
+}
+.to-top[hidden] { display: none; }
+.to-top:hover { background: var(--sky); }
+.to-top svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+/* 年の書き方と配色のボタン。文字と記号は、いまの書き方・配色でないほうを選ぶ */
 :root[data-era="seireki"] .era-toggle .to-seireki, :root:not([data-era="seireki"]) .era-toggle .to-wareki { display: none; }
 :root[data-theme="dark"] .theme-toggle .to-dark, :root:not([data-theme="dark"]) .theme-toggle .to-light { display: none; }
 
@@ -671,10 +722,13 @@ html:has(.toc) {
 /* 貼り付くまでは地を塗らない（地の波の上に目次の箱が浮いて見えないように）。貼り付いたかはスクリプトでしか分からないので、スクリプトが動かないときは塗ったまま */
 :root.js .toc:not(.stuck) { background: none; }
 .toc.stuck::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--toc-top); background: var(--bg); }
-.toc-head { height: 0; overflow: hidden; visibility: hidden; }
+.toc-head { display: flex; align-items: center; gap: 8px; height: 0; overflow: hidden; visibility: hidden; }
 .toc.stuck { margin-bottom: calc(-1 * var(--toc-head)); }
 .toc.stuck .toc-head { height: var(--toc-head); visibility: visible; }
-.toc-head-in { display: flex; align-items: center; gap: 8px; height: calc(var(--toc-head) - 6px); }
+.toc-head-in { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: calc(var(--toc-head) - 6px); }
+/* 何のページかの1行の右端の、サイドメニューを開くボタン（components/MenuButton.astro）。1行の高さに収める */
+.toc-head .menu-open { flex: none; min-height: 0; height: calc(var(--toc-head) - 6px); padding: 0 10px; border-width: 1.5px; }
+.toc-head .menu-icon { width: 16px; height: 16px; }
 .toc-kind {
   flex: none; display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--ink-2);
   border: 1.5px solid var(--hair); border-radius: 6px; padding: 0 7px; line-height: 1.6; white-space: nowrap;
@@ -793,6 +847,11 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
   details.m-opening[open] > :not(summary), .m-in { animation: m-drop 0.18s ease-out; }
   /* ページ内の目次が上に貼り付いたときに出す、何のページかの1行（scripts/toc.ts の stuck）。場所は一度に取り（本文には重ねるのでずれない）、中身をすっと出す */
   .toc.stuck .toc-head-in { animation: m-drop 0.18s ease-out; }
+  /* サイドメニュー: 右の端からすっと出す（どこから出たかが分かる）。後ろは薄く暗くする */
+  .site-menu[open] { animation: m-slide-in 0.2s ease-out; }
+  .site-menu[open]::backdrop { animation: m-fade 0.2s ease-out; }
+  /* ページの先頭へ: 下から少し浮かび上がって出る */
+  .to-top:not([hidden]) { animation: m-rise 0.18s ease-out; }
   /* いいね（components/Like.astro）: 押すとハートがポンとはね、お礼のポップアップが尾のほうからふくらんで出る。
      閉じるときは、スクリプトが leaving を付けて薄く消し、動き終わってから hidden にする（消える動きなので、キーフレームには終わりの形を書いて forwards で止める） */
   .like-btn[aria-pressed="true"] .heart { animation: m-heart 0.25s ease-out; }
@@ -817,6 +876,8 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
 @keyframes m-reveal { from { clip-path: circle(0 at var(--vt-x) var(--vt-y)); } to { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); } }
 @keyframes m-pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 @keyframes m-fade { from { opacity: 0; } }
+@keyframes m-slide-in { from { transform: translateX(100%); } }
+@keyframes m-rise { from { opacity: 0; transform: translateY(10px); } }
 @keyframes m-fade-out { to { opacity: 0; } }
 @keyframes m-drop { from { opacity: 0; transform: translateY(-6px); } }
 @keyframes m-arc { from { stroke-dasharray: 0 400; } }
@@ -830,14 +891,14 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
 @keyframes m-breathe { to { translate: 0 -10px; } }
 
 /* 印刷（勉強会や会議の資料に）。scripts/print.ts が印刷の直前に畳んだ内容を開き、html.printing を付けてページの幅を紙の幅（A4 の余白の内側）にそろえ、図をその幅で描き直す。
-   ナビ・年の書き方と配色のボタン・目次・絞り込み・シェアは出さない。タイトル（非公式の印）とフッターの出典の文は残す。
+   ナビ・メニューのボタン・年の書き方と配色のボタン・目次・絞り込み・シェアは出さない。タイトル（非公式の印）とフッターの出典の文は残す。
    地の色は白にし、状態の色は画面と同じに印刷する（色だけでなく形と文字でも出しているので、白黒の印刷でも読める） */
 html.printing .wrap { max-width: 186mm; padding-inline: 0; }
 @media print {
   @page { margin: 12mm; }
   body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .wrap { max-width: none; padding-inline: 0; }
-  .skip, .bg-waves, .site-nav, .foot-toggles, .toc, form[role="search"], .share-box, .share-panel, .share-menu, [data-more-btn], .more-row, #more, .tooltip, .cellpop { display: none !important; }
+  .skip, .bg-waves, .site-nav, .menu-open, .foot-toggles, .to-top, .toc, form[role="search"], .share-box, .share-panel, .share-menu, [data-more-btn], .more-row, #more, .tooltip, .cellpop { display: none !important; }
   .site-footer { margin-top: 24px; padding: 12px 0 0; background: none; }
   .site-footer .foot-links { display: none; }
   .sticker, .row-list { box-shadow: none !important; }

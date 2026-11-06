@@ -64,7 +64,7 @@ export function textOf(el: El | string): string {
 // ---------------------------------------------------------------- 色
 
 let tokens: Record<string, string> | undefined;
-// styles/global.css の :root（ライト）の色。ダークはフッターのボタンで選んだときだけなので、カードはライトで描く
+// styles/global.css の :root（ライト）の色。ダークはフッターかサイドメニューのボタンで選んだときだけなので、カードはライトで描く
 function color(name: string) {
   if (!tokens) {
     const css = fs.readFileSync(path.resolve(process.cwd(), 'src/styles/global.css'), 'utf-8');

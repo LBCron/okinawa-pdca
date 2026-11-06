@@ -3,12 +3,17 @@
 //    左の目次の中だけを動かして、そのリンクが見えるようにする（ページは動かさない）。スマホの幅では、上に貼り付いた行に見出しの名前を出す
 //  - 目次のリンクは、同じ章の中ならなめらかにスクロールし、ほかの章へはすぐ移る
 //  - スマホの幅では、目次を「目次」のボタンで全面に開く。リンクを押す・「閉じる」・Esc で閉じ、フォーカスはボタンに戻す
+//  - 上に貼り付く行（.hb-bar）は、すぐ前の目印（.hb-bar-mark）が画面の上から出たら（ヘッダーが隠れたら）stuck を付けて出す
 import { hashId } from './hash.ts';
 import { moving } from './motion.ts';
 
 const nav = document.querySelector<HTMLElement>('.hb-nav');
 const open = document.querySelector<HTMLButtonElement>('.hb-open');
 const now = document.querySelector<HTMLElement>('.hb-now');
+const bar = document.querySelector<HTMLElement>('.hb-bar');
+const barMark = document.querySelector<HTMLElement>('.hb-bar-mark');
+// # のリンクで遠くへ一度に跳んでも決められるよう、スクロールのたびに位置を見る（scripts/toc.ts と同じ）
+const stick = () => bar?.classList.toggle('stuck', !!barMark && barMark.getBoundingClientRect().top < 0);
 if (nav && open) {
   const close = nav.querySelector<HTMLButtonElement>('.hb-close');
   // 見出しは本文の順に並んでいる（上の端の位置が増えていく）ので、いまの見出しは2分探索で探す
@@ -102,6 +107,7 @@ if (nav && open) {
   });
   let queued = false;
   window.addEventListener('scroll', () => {
+    stick();
     if (jumping) {
       clearTimeout(jumping);
       jumping = window.setTimeout(endJump, 150);
@@ -115,4 +121,5 @@ if (nav && open) {
     });
   }, { passive: true });
   setCurrent(current(), true);
+  stick();
 }

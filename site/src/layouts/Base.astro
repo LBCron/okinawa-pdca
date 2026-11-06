@@ -7,6 +7,8 @@ import { OG_IMAGE, absUrl, websiteLd } from '../lib/seo.ts';
 import { scriptJson } from '../lib/html.ts';
 import { ERA_JS_PATH } from '../lib/era.ts';
 import { CARD_SIZE, cardMeta } from '../lib/card.ts';
+import MenuButton from '../components/MenuButton.astro';
+import ViewToggles from '../components/ViewToggles.astro';
 // 数字のフォント。styles/global.css の @font-face と同じファイル（/_astro/ にハッシュ付きの名前で書き出す。astro.config.ts の assetsInlineLimit）
 import fontUrl from '../fonts/fredoka-num.woff2?url';
 // favicon。src/assets から読み、/_astro/ にハッシュ付きの名前で書き出す（ずっとキャッシュさせる。public/_headers）。
@@ -36,7 +38,7 @@ const ogImage = card
 // 計画の3つの段（docs/design.md の1章）を上から、段ごとに「もの」とそれをはかる物差しを隣にしてまとめ（将来像 → 施策・成果指標 → 取組）、
 // その後ろに部局・予算、3つの段をまとめて見る計画の目次と指標のマップを置く。
 // まとまりのあいだには区切りの線を置く。基本施策と主要指標は5つの将来像のページに、活動指標は取組のページの中にあるので、項目を置かない。
-// 個別計画（観光ロードマップ）は計画が1つのうちはナビに置かず、くらしのテーマ・施策・取組のページとフッターから入る。
+// 個別計画（観光ロードマップ）は計画が1つのうちはナビに置かず、くらしのテーマ・施策・取組のページと、メニュー・フッター（下の MORE）から入る。
 // 最後に、県の仕組み（沖縄県PDCAについて）とこのサイトの説明を置く。データについて（出典・数え方・注意点）は、このサイトについての中のページとして扱う。
 // also のページ（基本施策）にいるときも、その項目をいまの場所にする
 const NAV: { href: string; label: string; also?: string[] }[][] = [
@@ -49,6 +51,13 @@ const NAV: { href: string; label: string; also?: string[] }[][] = [
   [{ href: '/pdca/', label: '沖縄県PDCAについて' }, { href: '/about/', label: 'このサイトについて', also: ['/data/'] }],
 ];
 const inItem = (n: (typeof NAV)[number][number]) => [n.href, ...(n.also || [])].some((h) => path.startsWith(h));
+// ナビに無いページ。サイドメニュー（下の #site-menu）とフッターに置く
+const MORE = [
+  { href: '/iken/', label: '意見を伝えたい人へ' },
+  { href: '/21-seiki-vision/kihon/', label: '基本計画の本文' },
+  { href: '/keikaku/', label: '個別計画' },
+  { href: '/data/', label: 'データについて' },
+];
 // ヘッダーの版の木の板。いつの報告書までのデータかを、最新の対象年度で示す（「令和7年度版」。公表の年と取り違えないよう年度で書く）
 const EDITION = `${yearLong(LATEST)}版`;
 // ページの先読み（Speculation Rules）。サイトの中のリンクにマウスを乗せたとき・押し始めたときに、行き先の HTML を先に取っておく。
@@ -66,7 +75,7 @@ const SPECULATION_RULES = JSON.stringify(SPECULATION);
 // 選んだ配色を最初に反映する（scripts/theme.ts が切り替えと記憶を受け持つ）。
 // 年を西暦で表示すると選んでいれば、書き換えのスクリプト（lib/era.ts）を読み込む。読み終えるまでページを読み進めないので、最初の描画から西暦で出る
 // （和暦のままの人は読まない。書き換えは、ページを読みながらそのスクリプトが行う）。
-// あわせて html に js を付ける。スクリプトでしか動かない年の書き方と配色のボタン（フッター）を、最初の描画から出すため（あとから出すと、そのぶんずれる。styles/global.css の .foot-toggles）。
+// あわせて html に js を付ける。スクリプトでしか動かないメニューのボタン（components/MenuButton.astro）と年の書き方・配色のボタン（フッター）を、最初の描画から出すため（あとから出すと、そのぶんずれる。styles/global.css の .menu-open・.foot-toggles）。
 // 地の波（styles/global.css の「地の波」）の位置は時計から決める（1時間の中の秒数を --wave-t に入れる）。同じ時刻ならどのページでも同じ位置なので、ページを移っても波が始まりに戻らない
 const THEME_INIT = `document.documentElement.classList.add('js');
 document.documentElement.style.setProperty('--wave-t', String(Date.now() / 1000 % 3600));
@@ -200,6 +209,7 @@ for (const code of [THEME_INIT, NAV_SCROLL, HEAD_SCROLL, SPECULATION_RULES, ...(
           <span class="edition">{EDITION}</span>
           <span class="site-sub"><small>（非公式）</small><a class="site-by" href="/about/#code-for-okinawa">by <b>{PROJECT.org}</b></a></span>
         </div>
+        <MenuButton class="head-menu" />
         <nav class="site-nav" aria-label="サイト内" data-scroll-hint>
           {NAV.map((g, i) => (
             <>
@@ -217,28 +227,49 @@ for (const code of [THEME_INIT, NAV_SCROLL, HEAD_SCROLL, SPECULATION_RULES, ...(
     <script is:inline set:html={HEAD_SCROLL}></script>
     <footer class="site-footer">
       <div class="wrap">
-        {/* ナビに無いページへのリンクと、年の書き方・配色のボタン、作り手の1行（著作権の表示の代わりに、いちばん下に小さく） */}
+        {/* ナビに無いページへのリンクと、年の書き方・配色のボタン（サイドメニューにもある）、作り手の1行（著作権の表示の代わりに、いちばん下に小さく） */}
         <div class="foot-row">
           <ul class="foot-links">
-            <li><a href="/iken/">意見を伝えたい人へ</a></li>
-            <li><a href="/21-seiki-vision/kihon/">基本計画の本文</a></li>
-            <li><a href="/keikaku/">個別計画</a></li>
-            <li><a href="/data/">データについて</a></li>
+            {MORE.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
           </ul>
-          <div class="foot-toggles">
-            {/* 年の書き方の切り替え（scripts/era.ts。data-src は書き換えのスクリプト）。文字は、いまの書き方でないほうを styles/global.css が選ぶ */}
-            <button type="button" class="foot-toggle era-toggle" id="era-toggle" data-src={ERA_JS_PATH}>
-              <span class="to-seireki">西暦で表示</span><span class="to-wareki">令和で表示</span>
-            </button>
-            <button type="button" class="foot-toggle theme-toggle" id="theme-toggle" aria-label="ダークモードに切り替える">
-              <span class="to-dark" aria-hidden="true">☾</span><span class="theme-label to-dark">ダーク</span>
-              <span class="to-light" aria-hidden="true">☀</span><span class="theme-label to-light">ライト</span>
-            </button>
-            <span class="sr-only" role="status" id="theme-status"></span>
-          </div>
+          <div class="foot-toggles"><ViewToggles /></div>
         </div>
         <p class="foot-by">このサイトは、<a href="/about/#code-for-okinawa">{PROJECT.org}</a> の<a href="/about/#civictech">シビックテック</a>の取り組みとして作っています。</p>
       </div>
     </footer>
+    {/* サイドメニュー（scripts/menu.ts）。長いページでも、ヘッダーとフッターまで戻らずに、ナビ・ナビに無いページ・表示の切り替えに届くようにする。
+        開くボタンはヘッダーと、上に貼り付く目次にある（components/MenuButton.astro）。ナビはヘッダーと同じ並び */}
+    <dialog class="site-menu" id="site-menu" aria-labelledby="site-menu-h">
+      <div class="menu-in">
+        <div class="menu-top">
+          <h2 class="menu-h" id="site-menu-h">メニュー</h2>
+          <button type="button" class="line-btn" data-menu-close>閉じる</button>
+        </div>
+        <nav aria-label="サイト内（メニュー）">
+          <ul class="menu-nav">
+            {NAV.map((g) => (
+              <li><ul>{g.map((n) => <li><a href={n.href} aria-current={inItem(n) ? 'page' : undefined}>{n.label}</a></li>)}</ul></li>
+            ))}
+          </ul>
+        </nav>
+        <section class="menu-sec" aria-labelledby="site-menu-more">
+          <h3 class="menu-sub" id="site-menu-more">そのほかのページ</h3>
+          <ul class="menu-more">
+            {MORE.map((l) => <li><a href={l.href} aria-current={path.startsWith(l.href) ? 'page' : undefined}>{l.label}</a></li>)}
+          </ul>
+        </section>
+        <section class="menu-sec" aria-labelledby="site-menu-view">
+          <h3 class="menu-sub" id="site-menu-view">表示</h3>
+          <div class="menu-toggles"><ViewToggles /></div>
+        </section>
+      </div>
+    </dialog>
+    {/* 右下の「ページの先頭へ」（scripts/to-top.ts）。上にスクロールしたときだけ出す。スクリプトが動かないときは hidden のまま */}
+    <button type="button" class="to-top" hidden title="ページの先頭へ">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 16V4M4.5 9.5 10 4l5.5 5.5" /></svg>
+      <span class="sr-only">ページの先頭へ</span>
+    </button>
+    {/* 配色を切り替えたことを読み上げで伝える文（scripts/theme.ts）。ボタンはフッターとサイドメニューの2か所にあるので、どちらにも入れずに置く */}
+    <span class="sr-only" role="status" id="theme-status"></span>
   </body>
 </html>

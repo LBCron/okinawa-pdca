@@ -27,3 +27,5 @@ import './scroll-hint.ts';
 import './table-scroll.ts';
 import './toc.ts';
 import './honbun.ts';
+import './menu.ts';
+import './to-top.ts';
