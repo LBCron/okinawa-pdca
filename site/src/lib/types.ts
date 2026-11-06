@@ -342,7 +342,18 @@ export interface HyokaKihonRow {
   page_end: number;
 }
 
-// 個別計画などの報告書（kanko・ikkatsu・hyoka の sources.json）
+// ---------------------------------------------------------------- 基本計画の本文（kihon/）
+
+// honbun.json の1行（scripts/extract_kihon.py）。page は PDF のページ、printed は印字のページ（「はじめに」には無い）
+interface HonbunBase { page: number; printed?: number; source: string }
+// 見出し。level は 1 章（と「はじめに」）・2 「１」・3 「⑴」・4 「ア」・5 「①」。pdca は第4章の見出しに当たる沖縄県PDCA の基本施策・施策展開・施策の ID
+export interface HonbunHeading extends HonbunBase { kind: 'h'; level: 1 | 2 | 3 | 4 | 5; id: string; mark: string; title: string; pdca?: string }
+export type KihonHonbunRow =
+  | HonbunHeading
+  | (HonbunBase & { kind: 'p' | 'label'; text: string }) // 段落・見出しの付かない小見出し
+  | (HonbunBase & { kind: 'fig' }); // 図（中身は読まない）
+
+// 個別計画などの報告書（kanko・ikkatsu・hyoka・kihon の sources.json）
 export interface PlanSourceRow {
   id: string;
   file_url: string;
@@ -422,4 +433,6 @@ export interface ExtractedFiles {
   'ikkatsu/sources': PlanSourceRow[];
   'hyoka/kihon': HyokaKihonRow[];
   'hyoka/sources': PlanSourceRow[];
+  'kihon/honbun': KihonHonbunRow[];
+  'kihon/sources': PlanSourceRow[];
 }

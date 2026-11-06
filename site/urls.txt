@@ -1,6 +1,7 @@
 # 公開したページの URL の一覧（docs/site.md の 8章）。ここにある URL のページが無くなり、public/_redirects の転送も無いと make test が落ちる。
 # make urls で、いまの全ページの URL を足して書き直す（消えた URL は残す）。手では足さない
 /
+/21-seiki-vision/kihon/
 /about/
 /bukyoku/
 /bukyoku/bunka-kanko/

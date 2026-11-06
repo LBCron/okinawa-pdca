@@ -9,9 +9,9 @@ import type { IkkatsuJigyoRow, KankoSeikaRow, KankoShisakuRow, KankoTorikumiRow,
 // ---------------------------------------------------------------- 出典
 
 // 抽出結果のフォルダ
-type PlanKind = 'kanko' | 'ikkatsu' | 'hyoka';
+type PlanKind = 'kanko' | 'ikkatsu' | 'hyoka' | 'kihon';
 
-// 県のPDFへのリンク。kind は抽出結果のフォルダ（kanko・ikkatsu・hyoka）
+// 県のPDFへのリンク。kind は抽出結果のフォルダ（kanko・ikkatsu・hyoka・kihon）
 const sourceMaps = onceBy((kind: PlanKind) => new Map(load(`${kind}/sources`).map((s): [string, PlanSourceRow] => [s.id, s])));
 export function planSourceLink(kind: PlanKind, id: string, page?: number | null) {
   const s = sourceMaps(kind).get(id);

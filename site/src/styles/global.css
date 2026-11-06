@@ -805,10 +805,14 @@ html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-marg
   .chart.m-anim .m-line { stroke-dasharray: var(--len); animation: m-draw 0.55s linear both paused; }
   .chart.m-anim :is(.m-dot, .m-tag) { transform-box: fill-box; transform-origin: center; animation: m-pop 0.22s cubic-bezier(0.3, 1.5, 0.6, 1) var(--d, 0ms) both paused; }
   .chart.m-anim.m-go :is(.m-line, .m-dot, .m-tag) { animation-play-state: running; }
+
+  /* 基本計画の本文（pages/21-seiki-vision/kihon/）: 目次からすぐ移った先の見出しに、淡いしるしを一度だけ出して消す（どこへ移ったか） */
+  .hb-h:target::before { content: ""; position: absolute; inset: -2px -10px; z-index: -1; border-radius: 10px; background: var(--sky); animation: m-fade-out 1s ease-in 0.2s forwards; }
 }
 @keyframes m-reveal { from { clip-path: circle(0 at var(--vt-x) var(--vt-y)); } to { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); } }
 @keyframes m-pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 @keyframes m-fade { from { opacity: 0; } }
+@keyframes m-fade-out { to { opacity: 0; } }
 @keyframes m-drop { from { opacity: 0; transform: translateY(-6px); } }
 @keyframes m-arc { from { stroke-dasharray: 0 400; } }
 @keyframes m-stamp { from { scale: 1.7; opacity: 0; } 55% { scale: 0.93; opacity: 1; } }

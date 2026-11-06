@@ -28,6 +28,7 @@ python3 scripts/fetch_pdca.py --source kikaku  # 取得元を絞る（--list-sou
 | kanko-rm | 沖縄観光推進ロードマップPDCA（個別計画。R4〜） | [pref.okinawa.jp …/1011741/1011810.html](https://www.pref.okinawa.jp/shigoto/kankotokusan/1011671/1011741/1011810.html) から年度別のページ |
 | ikkatsu | 沖縄振興特別推進交付金（ソフトの一括交付金）の事後評価（R4〜） | [pref.okinawa.jp …/1015205/1015216/](https://www.pref.okinawa.jp/kensei/yosan/1015205/1015216/index.html) |
 | hyoka | 新・沖縄21世紀ビジョン基本計画 評価検証報告書（R4〜R6） | [pref.okinawa.jp …/1014223/1039989.html](https://www.pref.okinawa.jp/kensei/shisaku/1014211/1014223/1039989.html) |
+| kihon | 新・沖縄21世紀ビジョン基本計画の本体（R4〜R13。計画の始まりの R4 として保存） | [pref.okinawa.jp …/1014223/1014250/](https://www.pref.okinawa.jp/kensei/shisaku/1014211/1014223/1014250/index.html) |
 
 - 県企業局のサイトは robots.txt で自動取得が禁止されているため、PDF はブラウザで手動ダウンロードし、`python3 scripts/import_manual.py <フォルダ> --source kigyo --since 2022` で取り込む（台帳に `fetched_by: manual` と記録される）。
 - 知事部局は一覧ページから自動検出する。保存名は県のページIDで固定しているため、部局名が変わってもフォルダは分かれない（環境部は新旧2ページとも kankyo）。未登録のIDは `dept-<ID>` で保存し警告を出す。

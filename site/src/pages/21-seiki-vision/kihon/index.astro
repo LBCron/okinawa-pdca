@@ -1,0 +1,188 @@
+---
+// 基本計画の本文を全部載せた1つのページ。左に全体の目次、右に本文を置く（法令の全文のページのような形）。
+// 全文が1ページにあるので、ブラウザのページ内検索で全文を探せる。
+// 画面の外の章を描かない（content-visibility）ことはしない。描くまでの高さが見積もりなので、目次から遠くの見出しへ跳ぶと、
+// 途中で章の高さが変わって行き先からずれて止まるため（全部を描いても重くはない）。
+// 目次は全部の見出しを入れ子で持ち、スクリプトが動くときは、章と、いま読んでいる見出しまでの段だけを開く（scripts/honbun.ts）。
+// スマホの幅では目次を本文の上の貼り付いた「目次」のボタンから開く（スクリプトが動かないときは、本文の前にそのまま出す）
+import Base from '../../../layouts/Base.astro';
+import ExtLink from '../../../components/ExtLink.astro';
+import { KIHON_KEIKAKU, honbunChapters, honbunAnchor, headingTag, headingText, headingTree, splitNotes, type HonbunNode } from '../../../lib/honbun.ts';
+import { honbunMeta } from '../../../lib/describe.ts';
+import { planSourceLink } from '../../../lib/plans.ts';
+import type { HonbunHeading, KihonHonbunRow } from '../../../lib/types.ts';
+
+const chapters = honbunChapters();
+const meta = honbunMeta();
+const tree = headingTree(chapters.flatMap((c) => [c.head, ...c.blocks.filter((b): b is HonbunHeading => b.kind === 'h')]));
+
+// PDF のページへのリンク。ページが変わったかたまりの頭に、印字のページを出す
+const source = chapters[0].head.source;
+const src = planSourceLink('kihon', source);
+const pageHref = (page: number) => planSourceLink('kihon', source, page)?.href ?? '#';
+const pageMarks = new Set<KihonHonbunRow>();
+let lastPage = 0;
+for (const b of chapters.flatMap((c) => [c.head, ...c.blocks])) {
+  if (b.page !== lastPage) pageMarks.add(b);
+  lastPage = b.page;
+}
+const printedOf = (b: { page: number; printed?: number }) => (b.printed ? `${b.printed}ページ` : `PDFの${b.page}ページ`);
+// 箇条（「① …」「1) …」）の段落は、2行目以降を印の後ろにそろえる（県の PDF と同じぶら下げ）
+const LIST_ITEM = /^([①-⑳]|\d+\))/;
+// 沖縄県PDCA のページ（基本施策・施策）。施策展開のページは無いので付けない
+const pdcaLink = (h: HonbunHeading) =>
+  h.pdca && h.level === 3 ? { href: `/kihon/${h.pdca}/`, label: 'この基本施策の進み具合' }
+  : h.pdca && h.level === 5 ? { href: `/shisaku/${h.pdca}/`, label: 'この施策の進み具合' }
+  : null;
+---
+<Base title={meta.title} description={meta.description} ogType="article">
+  <div class="hb">
+    {/* スマホの幅で上に貼り付く行（スクリプトが動くときだけ出す）。いま読んでいる見出しの名前は scripts/honbun.ts が入れる */}
+    <div class="hb-bar">
+      <button type="button" class="hb-open" aria-expanded="false" aria-controls="hb-nav">目次</button>
+      <span class="hb-now" aria-hidden="true">{KIHON_KEIKAKU.name}</span>
+    </div>
+    <nav class="hb-nav" id="hb-nav" aria-label="基本計画の目次">
+      <div class="hb-nav-top">
+        <span class="hb-plan">目次</span>
+        <button type="button" class="hb-close">閉じる</button>
+      </div>
+      <ol class="hb-tree">
+        {tree.map(function item(n: HonbunNode) {
+          return (
+            <li class={`lv${n.h.level}`}>
+              <a href={`#${honbunAnchor(n.h.id)}`}>{headingText(n.h)}</a>
+              {n.children.length > 0 && <ol>{n.children.map(item)}</ol>}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+
+    <article class="hb-body">
+      <header class="hb-head">
+        <p class="hb-kicker small secondary">沖縄県・{KIHON_KEIKAKU.published}策定（{KIHON_KEIKAKU.period}）</p>
+        <h1>{KIHON_KEIKAKU.name}の本文</h1>
+        <p class="lead">
+          沖縄県が{KIHON_KEIKAKU.published}に策定した、{KIHON_KEIKAKU.period}の沖縄振興の計画です。沖縄県PDCAの施策と主な取組は、この計画の基本施策（第4章）を実施計画で具体化したものです。
+          県の PDF の本文を全部このページに載せているので、ブラウザのページ内検索（パソコンは Ctrl+F・⌘F）で全文から探せます。基本施策と施策の見出しからは、このサイトのその進み具合のページへ移れます。
+        </p>
+        <p class="small secondary hb-src">{src && <ExtLink href={src.href}>{src.label}（PDF）</ExtLink>}。「*」の付いた言葉は、県の資料編に用語の説明があります。</p>
+      </header>
+
+      {chapters.map((c) => (
+        <section class="hb-ch" aria-labelledby={honbunAnchor(c.head.id)}>
+          {[c.head, ...c.blocks].map((b) => (
+            <>
+              {pageMarks.has(b) && <ExtLink class="hb-pg" href={pageHref(b.page)} title={`PDF の ${b.page}ページ目`}>{printedOf(b)}</ExtLink>}
+              {b.kind === 'h' ? (() => {
+                const Tag = headingTag(b.level);
+                const link = pdcaLink(b);
+                return (
+                  <>
+                    <Tag id={honbunAnchor(b.id)} class:list={['hb-h', `lv${b.level}`]}><a class="hb-hlink" href={`#${honbunAnchor(b.id)}`}>{b.mark && <span class="hb-mark">{b.level === 1 ? `第${b.mark}章` : b.mark}</span>}{b.title}</a></Tag>
+                    {link && <p class="hb-pdca small"><a href={link.href}>{link.label}（沖縄県PDCA）</a></p>}
+                  </>
+                );
+              })()
+              : b.kind === 'label' ? <p class="hb-label">{b.text}</p>
+              : b.kind === 'fig' ? <p class="hb-fig small">図は省いています（<ExtLink href={pageHref(b.page)}>PDF の{printedOf(b)}</ExtLink>）</p>
+              : <p class:list={['hb-p', LIST_ITEM.test(b.text) && 'item']}>{splitNotes(b.text).map((s) => (s.note ? <span class="hb-note" title="県の資料編に用語の説明があります">*</span> : s.text))}</p>}
+            </>
+          ))}
+        </section>
+      ))}
+
+      <section class="hb-about small" aria-labelledby="source">
+        <h2 id="source" class="hb-about-h">出典と読み方</h2>
+        <p>
+          {src && <><ExtLink href={src.href}>{src.label}</ExtLink>（沖縄県、{KIHON_KEIKAKU.published}）の PDF の文字を読み取ったものです。</>}
+          段落の中の改行は画面の幅に合わせ、ページの区切りは段落の頭に印字のページで示しています。ふりがなと図は省いています（図は PDF で見てください）。
+          「*」の付いた言葉は、県の資料編に用語の説明があります。
+        </p>
+        <p>計画の本文の著作権は沖縄県にあります。引用するときは、PDF で確かめてください。</p>
+      </section>
+    </article>
+  </div>
+</Base>
+
+<style>
+  /* 目次からほかの章の見出しへは、なめらかに動かさずにすぐ移る（全文が長く、遠くの章へはスクロールの動きが長くなるため）。
+     同じ章の中は、押したときだけ scripts/honbun.ts がなめらかにする。着いた見出しは、一度だけ淡くしるしを付けて消す（styles/global.css の「動き」の .hb-h:target） */
+  :global(html:has(.hb-nav)) { scroll-behavior: auto; }
+  /* 左に目次、右に本文。目次は画面の高さに収め、目次の中だけを動かす */
+  .hb { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0 40px; align-items: start; margin-top: 24px; }
+  .hb-bar { display: none; }
+  .hb-nav {
+    position: sticky; top: 0; max-height: 100vh; overflow-y: auto; overscroll-behavior: contain;
+    padding: 16px 8px 24px 0; font-size: 0.875rem; line-height: 1.55;
+  }
+  .hb-nav-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .hb-plan { font-family: var(--font-display); font-weight: 700; font-size: 0.9375rem; }
+  .hb-close { display: none; }
+  .hb-tree, .hb-tree ol { list-style: none; margin: 0; padding: 0; }
+  .hb-tree ol { padding-left: 12px; border-left: 1.5px solid var(--hair); margin: 2px 0 4px 6px; }
+  .hb-tree li { margin: 0; }
+  .hb-tree a { display: block; padding: 3px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; }
+  .hb-tree a:hover { background: var(--sky); }
+  .hb-tree > li > a { font-family: var(--font-display); font-weight: 700; }
+  .hb-tree .lv5 > a { color: var(--ink-2); font-size: 0.8125rem; }
+  /* スクリプトが動くときは、章と、いま読んでいる見出しまでの段（scripts/honbun.ts の open）だけを開く */
+  :global(:root.js) .hb-tree li:not(.open) > ol { display: none; }
+  /* いま読んでいる見出し（scripts/honbun.ts） */
+  .hb-tree a[aria-current="location"] { background: var(--paper); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--shadow); padding: 1px 6px; font-weight: 700; color: var(--ink); }
+
+  .hb-body { min-width: 0; max-width: 46em; }
+  .hb-head { margin-bottom: 8px; }
+  .hb-head h1 { margin: 0.1em 0 0.3em; }
+  .hb-kicker { margin: 0; }
+  .hb-h { scroll-margin-top: 16px; position: relative; isolation: isolate; }
+  .hb-hlink { color: inherit; text-decoration: none; }
+  .hb-hlink:hover { text-decoration: underline; text-decoration-color: var(--hair); }
+  .hb-mark { margin-right: 0.5em; }
+  h2.hb-h { margin-top: 2.4em; font-size: 1.5rem; }
+  h3.hb-h { margin-top: 2em; font-size: 1.25rem; }
+  h4.hb-h { margin-top: 1.8em; font-size: 1.08rem; }
+  h5.hb-h, h6.hb-h { font-family: var(--font-display); font-size: 1rem; margin: 1.6em 0 0.3em; line-height: 1.5; }
+  .hb-pdca { margin: -0.2em 0 0.6em; }
+  .hb-pdca a::after { content: " →"; }
+  /* 本文は段落の頭を1字下げる（県の PDF と同じ）。行を少し広げて読みやすくする */
+  .hb-p { text-indent: 1em; line-height: 1.95; margin: 0.5em 0; }
+  .hb-p.item { text-indent: -1em; padding-left: 1em; }
+  .hb-label { font-family: var(--font-display); font-weight: 700; margin: 1.2em 0 0.3em; }
+  .hb-note { font-size: 0.75em; vertical-align: super; line-height: 0; color: var(--ink-2); }
+  .hb-fig { border: 2px dashed var(--hair); border-radius: 12px; padding: 10px 14px; color: var(--ink-2); }
+  /* 印字のページ。段落の右上に小さく寄せる */
+  .hb-body :global(a.hb-pg) { float: right; clear: right; margin: 0.35em 0 0.2em 12px; font-size: 0.75rem; line-height: 1.4; color: var(--muted); text-decoration-color: var(--hair); }
+  .hb-about { margin-top: 40px; color: var(--ink-2); clear: both; }
+  .hb-about-h { font-size: 1rem; margin: 0 0 0.3em; }
+
+  /* スマホ・タブレットの幅: 目次は本文の上。スクリプトが動くときは、貼り付いた「目次」のボタンから全面に開く */
+  @media (max-width: 900px) {
+    .hb { grid-template-columns: minmax(0, 1fr); margin-top: 8px; }
+    .hb-nav { position: static; max-height: none; padding: 0; margin-bottom: 16px; }
+    :global(:root.js) .hb-bar {
+      display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+      margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 2px solid var(--hair);
+    }
+    .hb-open {
+      flex: none; font: inherit; font-family: var(--font-display); font-size: 0.9375rem; font-weight: 700; color: var(--ink); cursor: pointer;
+      padding: 4px 14px; min-height: 38px; border: 2px solid var(--line); border-radius: 999px; background: var(--paper);
+    }
+    .hb-now { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 0.9375rem; }
+    :global(:root.js) .hb-nav:not(.open) { display: none; }
+    :global(:root.js) .hb-nav.open {
+      position: fixed; inset: 0; z-index: 60; max-height: none; overflow-y: auto; margin: 0;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 32px; background: var(--paper); font-size: 0.9375rem;
+    }
+    :global(:root.js) .hb-nav.open .hb-close {
+      display: inline-flex; flex: none; font: inherit; font-family: var(--font-display); font-weight: 700; color: var(--ink); cursor: pointer;
+      padding: 4px 14px; min-height: 38px; border: 2px solid var(--line); border-radius: 999px; background: var(--paper);
+    }
+    .hb-h { scroll-margin-top: 64px; }
+  }
+  @media print {
+    .hb { display: block; }
+    .hb-nav, .hb-bar { display: none !important; }
+  }
+</style>
