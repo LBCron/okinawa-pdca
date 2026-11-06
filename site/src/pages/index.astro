@@ -17,6 +17,7 @@ import { getThemes } from '../lib/themes.ts';
 import { allHead, futureHead } from '../lib/heads.ts';
 import { fmt } from '../lib/format.ts';
 import { LINKS, SITE } from '../lib/links.ts';
+import { KIHON_KEIKAKU } from '../lib/honbun.ts';
 import ExtLink from '../components/ExtLink.astro';
 import SecHead from '../components/SecHead.astro';
 import { BOSHU, HASHTAG, boshuState, dayText } from '../lib/iken.ts';
@@ -54,7 +55,7 @@ const boshu = boshuState();
     <span class="tag">{yearLong(LATEST)}の結果</span>
     <h1 id="hero-h">沖縄県の取組、どこまで進んだ？</h1>
     <p class="lead">
-      沖縄県は毎年、「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>に並ぶ<Term word="施策" />と<Term word="主な取組" />がどこまで進んだかを点検し、「<ExtLink href={LINKS.kekka} after="」">沖縄県PDCA実施結果</ExtLink>として公表しています。<br />
+      沖縄県は毎年、「<a href={KIHON_KEIKAKU.href}>新・沖縄21世紀ビジョン</a>」に並ぶ<Term word="施策" />と<Term word="主な取組" />がどこまで進んだかを点検し、「<ExtLink href={LINKS.kekka} after="」">沖縄県PDCA実施結果</ExtLink>として公表しています。<br />
       その結果（{yearsLong(YEARS[0], LATEST)}）を、<a href="/data/#shutten">PDF <span class="big pdf-n">{fmt(getPdfCount())}</span>件</a>から見やすくまとめました。
     </p>
     <Ladder shuyou={shuyou} seika={head.rates} tori={head.tori} toriDistinct={distinctTorikumiCount(LATEST)} />
@@ -81,7 +82,7 @@ const boshu = boshuState();
 
   <section aria-labelledby="vision">
     <SecHead id="vision">5つの将来像、それぞれの進み具合</SecHead>
-    <p class="small secondary lead">「<ExtLink href={LINKS.kihonKeikaku} after="」">新・沖縄21世紀ビジョン</ExtLink>は、めざす沖縄の姿として5つの<Term word="将来像" />を掲げています。</p>
+    <p class="small secondary lead">「<a href={KIHON_KEIKAKU.href}>新・沖縄21世紀ビジョン</a>」は、めざす沖縄の姿として5つの<Term word="将来像" />を掲げています。</p>
     <ul class="row-list visions">
       {visions.map((v) => (
         <li class:list={['vision', `sz-${v.id}`]}>
