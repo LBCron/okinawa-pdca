@@ -3,7 +3,7 @@
 //    左の目次の中だけを動かして、そのリンクが見えるようにする（ページは動かさない）。スマホの幅では、上に貼り付いた行に見出しの名前を出す
 //  - 目次のリンクは、同じ章の中ならなめらかにスクロールし、ほかの章へはすぐ移る
 //  - スマホの幅では、目次を「目次」のボタンで全面に開く。リンクを押す・「閉じる」・Esc で閉じ、フォーカスはボタンに戻す
-//  - スマホの幅で上に貼り付く行（.hb-bar）は、すぐ前の目印（.hb-bar-mark）が画面の上から出たら（ヘッダーが隠れたら）stuck を付け、メニューのボタンを出す
+//  - スマホの幅で上に貼り付く行（.hb-bar）は、すぐ前の目印（.hb-bar-mark）が行の貼り付く位置より上に出たら（ヘッダーが隠れたら）stuck を付け、メニューのボタンを出す
 import { hashId } from './hash.ts';
 import { moving } from './motion.ts';
 
@@ -13,7 +13,9 @@ const now = document.querySelector<HTMLElement>('.hb-now');
 const bar = document.querySelector<HTMLElement>('.hb-bar');
 const barMark = document.querySelector<HTMLElement>('.hb-bar-mark');
 // # のリンクで遠くへ一度に跳んでも決められるよう、スクロールのたびに位置を見る（scripts/toc.ts と同じ）
-const stick = () => bar?.classList.toggle('stuck', !!barMark && barMark.getBoundingClientRect().top < 0);
+// 行の貼り付く位置（画面の上からの px）。ふつうは 0 で、アプリの中のブラウザではアプリが上を覆うと知らせる高さから決まる（styles/global.css の --toc-top）
+const barTop = () => (bar && parseFloat(getComputedStyle(bar).top)) || 0;
+const stick = () => bar?.classList.toggle('stuck', !!barMark && barMark.getBoundingClientRect().top < barTop());
 if (nav && open) {
   const close = nav.querySelector<HTMLButtonElement>('.hb-close');
   // 見出しは本文の順に並んでいる（上の端の位置が増えていく）ので、いまの見出しは2分探索で探す
@@ -44,13 +46,14 @@ if (nav && open) {
     if (!m.matches && nav.classList.contains('open')) setOpen(false, false);
   });
 
-  // 見出しの上の端がここ（画面の上からの px）より上に来たら、その見出しの所にいる
+  // 見出しの上の端がここ（行の貼り付く位置からの px）より上に来たら、その見出しの所にいる
   const LINE = 120;
   const current = () => {
+    const line = barTop() + LINE;
     let lo = 0, hi = links.length - 1, hit = -1;
     while (lo <= hi) {
       const mid = (lo + hi) >> 1;
-      if (links[mid].h.getBoundingClientRect().top <= LINE) { hit = mid; lo = mid + 1; } else hi = mid - 1;
+      if (links[mid].h.getBoundingClientRect().top <= line) { hit = mid; lo = mid + 1; } else hi = mid - 1;
     }
     return hit < 0 ? null : links[hit].a;
   };
@@ -79,7 +82,7 @@ if (nav && open) {
     jumping = 0;
     document.documentElement.style.scrollBehavior = '';
     const top = clicked?.h.getBoundingClientRect().top;
-    setCurrent(clicked && top !== undefined && top > -10 && top <= LINE ? clicked.a : current(), true);
+    setCurrent(clicked && top !== undefined && top > -10 && top <= barTop() + LINE ? clicked.a : current(), true);
     clicked = undefined;
   };
   nav.addEventListener('click', (e) => {
