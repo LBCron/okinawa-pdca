@@ -28,6 +28,13 @@
 /map/search-*.json
   Cache-Control: public, max-age=31536000, immutable
 
+# AI 向けの案内と基本計画の本文の章ごとの Markdown（docs/site.md の6章）。Cloudflare は .txt・.md に charset を付けずに返し、
+# ブラウザで開くと日本語が化けることがあるので、UTF-8 と書く
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/21-seiki-vision/kihon/*.md
+  Content-Type: text/markdown; charset=utf-8
+
 # ページ（HTML。URL は / か末尾が / のものだけ）は5分キャッシュする。HTML にだけ ETag が付かず（workers.dev でも
 # okinawa-miraima.com でも。Cloudflare の配信の途中で外れ、ゾーンの設定では直らない）、
 # 既定の max-age=0 のままだと開くたびに全部を取り直すため。
