@@ -36,7 +36,8 @@ export interface El {
 }
 type Kid = El | string | null | undefined | false | Kid[];
 
-const clean = (s: Style) => Object.fromEntries(Object.entries(s).filter(([, v]) => v !== undefined));
+// どの要素も幅・高さに線と内側の余白を含める（border-box）。カードの寸法はこの前提で決めていて、satori の既定は Chrome と同じ content-box
+const clean = (s: Style) => Object.fromEntries(Object.entries({ boxSizing: 'border-box', ...s }).filter(([, v]) => v !== undefined));
 function h(type: string, style: Style, kids: Kid[]): El {
   const children = (kids.flat(Infinity as 1) as (El | string | null | undefined | false)[]).filter((k): k is El | string => k != null && k !== false && k !== '');
   return { type, props: { style: clean(style), children } };
@@ -209,7 +210,7 @@ function title(name: string, width: number, height: number, largest = SIZES[0]) 
   }
   return box(
     { flexWrap: 'wrap', width, maxHeight: height, flexShrink: 0, overflow: 'hidden' },
-    ps.map((p) => txt({ fontSize: size, lineHeight: LH, letterSpacing: '0.02em' }, p)),
+    ps.map((p) => txt({ fontSize: size, lineHeight: LH }, p)),
   );
 }
 // 「何のページか」の行と名前。2つをまとめて、高さ height の中で上下の真ん中に置く
