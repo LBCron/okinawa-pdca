@@ -26,7 +26,7 @@ import {
 } from '../../../lib/data.ts';
 import { activityShares, activityAchievement, activityAchievements, type ActivityRun } from '../../../lib/katsudou.ts';
 import { yen } from '../../../lib/format.ts';
-import { firstSentence, isBlankCell, parenSplit } from '../../../lib/text.ts';
+import { firstSentence, isBlankCell } from '../../../lib/text.ts';
 import { torikumiMeta } from '../../../lib/describe.ts';
 import ExtLink from '../../../components/ExtLink.astro';
 import Says from '../../../components/Says.astro';
@@ -101,6 +101,11 @@ const runSpanLong = (run: ActivityRun) => {
 const futureText = (run: ActivityRun) => run.years.filter((r) => r.future).map((r) => yearLong(r.y)).join('・');
 // 名前の変わった活動指標を同じ活動指標としてつないだもの（前の名前は出典に書く）
 const actFormers = [...runGroups.values()].map((runs) => runs[0]).filter((run) => run.formers.length > 0);
+// 表の「1件（3件）」を、図に使うかっこの前と、かっこの中（累計や内訳）に分ける。かっこの中は下の行に出す
+const parenSplit = (raw: string) => {
+  const i = raw.search(/[（(]/);
+  return i > 0 ? [raw.slice(0, i).trimEnd(), raw.slice(i)] : [raw, ''];
+};
 // 最新の報告の「進捗の判定の根拠」は活動指標の図のすぐ後に県の吹き出しで出し、その年度の PDCA の D には出さない（施策ページの成果指標のカードの「道のり → 県による説明」と同じ並び）
 const latestBasis = tr?.basis;
 // 閉じた年度に出す、その年度にやったことの1文目（部局票が無い年度は総括報告書の活動概要）

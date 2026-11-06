@@ -9,7 +9,6 @@ import type { SeikaRow } from './types.ts';
 import { fmt } from './format.ts';
 import { isBlankCell, oneLine } from './text.ts';
 import { shortName } from './iken.ts';
-import { HONBUN_PLANS, type HonbunPlan } from './honbun.ts';
 
 type Counts = Record<string, number>;
 
@@ -165,22 +164,8 @@ export const budgetMeta = (name: string, o: { year: number; estimate: string | n
   description: `沖縄県の予算事業「${name}」の決算額・予算額の推移と財源、この予算事業が書かれている主な取組です。${yearLong(o.year)}の報告では主な取組${fmt(o.torikumi)}件に書かれています。${o.estimate ? `決算見込額は${o.estimate}。` : ''}`,
 });
 
-// 計画の本文のページ（/21-seiki-vision/<計画>/。全文を1ページに載せている）
-export const honbunMeta = (plan: HonbunPlan) => {
-  const p = HONBUN_PLANS[plan];
-  return plan === 'kihon'
-    ? {
-        title: `${p.name}の本文`,
-        description: `${p.name}（${p.period}。${p.published}に沖縄県が策定）の本文を全部1ページに載せ、目次からたどって読めます。基本施策と施策の見出しから、沖縄県PDCAでの進み具合のページへ移れます。`,
-      }
-    : {
-        title: `${p.name}の本文`,
-        description: `${p.name}（${p.period}。${p.published}に沖縄県が策定）の本文と表を全部1ページに載せ、目次からたどって読めます。施策ごとの施策の方向・成果指標・主な取組と年度ごとの活動指標を、ページ内検索で探せます。`,
-      };
-};
-
-// 計画の入口のページ（/21-seiki-vision/）
-export const visionMeta = () => ({
-  title: '新・沖縄21世紀ビジョンの計画',
-  description: '新・沖縄21世紀ビジョンの基本計画と実施計画（前期・中期）がどうつながっているかと、それぞれの本文のページです。沖縄県PDCAの施策と主な取組は、実施計画で決められています。',
+// 基本計画の本文のページ（/21-seiki-vision/kihon/。全文を1ページに載せている）
+export const honbunMeta = () => ({
+  title: '新・沖縄21世紀ビジョン基本計画の本文',
+  description: '新・沖縄21世紀ビジョン基本計画（令和4〜13年度。令和4年5月に沖縄県が策定）の本文を全部1ページに載せ、目次からたどって読めます。基本施策と施策の見出しから、沖縄県PDCAでの進み具合のページへ移れます。',
 });

@@ -128,7 +128,7 @@ RELATED_SOURCES = [
     Source("kihon", "新・沖縄21世紀ビジョン基本計画",
            "https://www.pref.okinawa.jp/kensei/shisaku/1014211/1014223/1014250/index.html",
            PREF_HOSTS, file_match=r"\(沖縄振興計画\)\s*\(PDF", fiscal_year=2022),
-    # 新・沖縄21世紀ビジョン実施計画の本体（分冊）。前期（R4〜R6）と中期（R7〜R9）。サイトの実施計画の本文で見せる。
+    # 新・沖縄21世紀ビジョン実施計画の本体（分冊）。前期（R4〜R6）と中期（R7〜R9）。
     # 概要版・附属資料・関連体系図は取らない（本体のリンク文言は「…（表紙から…）」「…（基本施策…から…）」）。計画の始まりの年度として保存する
     Source("jisshi-zenki", "新・沖縄21世紀ビジョン実施計画（前期）",
            "https://www.pref.okinawa.jp/kensei/shisaku/1014211/1014230/1014251.html",
