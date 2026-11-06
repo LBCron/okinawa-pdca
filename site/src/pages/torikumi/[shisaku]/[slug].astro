@@ -18,6 +18,7 @@ import KatsudouChart from '../../../components/KatsudouChart.astro';
 import ToriRef from '../../../components/ToriRef.astro';
 import ShareMenu from '../../../components/ShareMenu.astro';
 import Toc from '../../../components/Toc.astro';
+import HonbunLink from '../../../components/HonbunLink.astro';
 import { themeIdsOf } from '../../../lib/themes.ts';
 import {
   YEARS, LATEST, yearLabel, yearLong, yearsLong, periodLabel, statusOf, toneOfStatus, statusStamps, budgetOf,
@@ -140,6 +141,7 @@ const noAmount = `部局の検証票に、この取組の${yearLong(t.year)}の�
     <div class="head-meta">
       <span>所管: {secHref ? <a class="sub-link" href={secHref}>{t.section}</a> : t.section}</span>
       {latestRec?.actor && <span>実施主体: {latestRec.actor.replace(/,/g, '・')}</span>}
+      {!latestRec?.activity && <HonbunLink id={s.id} />}
       {rm.length > 0 && <a class="plan-tag" href="#rm">{KANKO.short}でも評価</a>}
     </div>
     <div class="head-box inset">
@@ -171,6 +173,7 @@ const noAmount = `部局の検証票に、この取組の${yearLong(t.year)}の�
     {latestRec?.activity && (
       <Says label="ひとことで言うと（検証票の「取組内容」から）">
         <p class="says-first">{latestRec.activity}</p>
+        <p class="honbun"><HonbunLink id={s.id} /></p>
       </Says>
     )}
   </header>

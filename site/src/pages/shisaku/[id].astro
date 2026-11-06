@@ -15,6 +15,7 @@ import Prose from '../../components/Prose.astro';
 import Hierarchy from '../../components/Hierarchy.astro';
 import HeadKind from '../../components/HeadKind.astro';
 import ShareBox from '../../components/ShareBox.astro';
+import HonbunLink from '../../components/HonbunLink.astro';
 import Toc from '../../components/Toc.astro';
 import {
   YEARS, LATEST, yearLabel, yearLong, STATUSES, judgeOf, seikaVerdict, seikaPastSays, seikaAlias, seikaFormerNames, formerText,
@@ -39,7 +40,7 @@ type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { s } = Astro.props;
 const kihon = getKihonList().find((k) => k.id === s.kihon_id)!;
-// 基本計画の本文の、この施策の見出し（出典の節からリンクする）
+// 基本計画の本文の、この施策の見出し（頭の県の吹き出しと出典の節からリンクする）
 const honbun = honbunHrefOf(s.id);
 // 主な取組（年度をまたいだまとまり。報告書の順）
 const tRows = getTorikumiGroups().filter((g) => g.shisaku.id === s.id);
@@ -145,6 +146,7 @@ const rmShisaku = kankoOfPdcaShisaku(s);
           <summary>施策の方向をすべて読む</summary>
           <p class="prose small">{joinLines(s.houkou)}</p>
         </details>
+        <p class="honbun"><HonbunLink id={s.id} /></p>
       </Says>
     )}
   </header>

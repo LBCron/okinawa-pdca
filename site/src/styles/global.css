@@ -484,6 +484,8 @@ ol.stamps { list-style: none; padding: 0; margin: 0; }
 .says-label { font-weight: 700; }
 div.says-label + * { margin-top: 4px; }
 .says-first { font-weight: 700; }
+/* 吹き出しの終わりの、基本計画の本文へのリンク（components/HonbunLink.astro）。字の大きさは「すべて読む」の開け閉めにそろえる */
+.bubble > .honbun { margin: 6px 0 0; font-size: 0.9375rem; }
 /* スマホでは印を上に置き、吹き出しを上から出す（横に並べると印の分だけ本文の幅が狭くなるため）。尾は印の真ん中の下に置く */
 @media (max-width: 640px) {
   .bubble-row { flex-direction: column; gap: 14px; }
