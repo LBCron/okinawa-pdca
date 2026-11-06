@@ -406,29 +406,41 @@ def shape_table(t: Table, prev_table: dict | None, shisaku: str | None, caption:
 
 
 def torikumi_body(rows: list[list[dict]], ncols: int) -> list[list[dict]]:
-    rows = [list(r) for r in rows]
-    # 実施主体の列が、取組の3つの行の区切りの線で分かれていることがある（3-(4)-ア-①）。名前の行の高さぶんを1つのセルにまとめる
-    for i, r in enumerate(rows):
-        if r and r[0]["c"] == 0 and r[0]["rs"] >= 2 and len(r) > 1 and r[1]["c"] == 1 and r[1]["rs"] < r[0]["rs"]:
-            actor = dict(r[1], lines=list(r[1]["lines"]), rs=r[0]["rs"])
-            for nxt in rows[i + 1:i + r[0]["rs"]]:
-                for c in [c for c in nxt if c["c"] == 1]:
-                    actor["lines"] += c["lines"]
-                    nxt.remove(c)
-            r[1] = actor
-    out = []
+    """主な取組の表の行を、「○…」の行と、取組ごとの3行（活動・活動指標・年度ごとの値）に並べ直す。
+    名前と実施主体の列にも点線の区切りが入って、名前や所管が別の行に割れていることがある（2-(4)-ア-③）ので、
+    年度の列の行を3行ずつ1つの取組とし、その3行にある名前と実施主体の列の切れ端を、印字の順に1つのセルにまとめる。"""
+    out: list[list[dict]] = []
+    part: list[list[dict]] = []  # いまの取組の行（年度の列のセルだけ）
+    names: list[Line] = []
+    actors: list[Line] = []
+
+    def flush() -> None:
+        if not part:
+            return
+        name = {"text": cell_text(names, False), "rs": len(part), "torikumi": torikumi_name(cell_text(names, False))}
+        # 実施主体は狭い列に1行に1つずつ印字されている（長い名前は途中で折り返す）ので、印字の行のまま
+        actor = {"text": "\n".join(ln.text.strip() for ln in actors), "rs": len(part)}
+        if len(part) == 1:
+            del name["rs"], actor["rs"]
+        out.append([name, actor] + part[0])
+        out.extend(part[1:])
+        part.clear()
+        names.clear()
+        actors.clear()
+
     for r in rows:
-        if not r:
+        if len(r) == 1 and r[0]["cs"] == ncols and cell_text(r[0]["lines"], False).startswith("○"):
+            flush()
+            out.append([{"text": cell_text(r[0]["lines"], False), "cs": ncols, "group": True}])
             continue
-        cells = [cell_out(c) for c in r]
-        if len(r) == 1 and r[0]["cs"] == ncols and cells[0]["text"].startswith("○"):
-            cells[0]["group"] = True
-        elif r[0]["c"] == 0 and r[0]["rs"] >= 2:
-            cells[0]["torikumi"] = torikumi_name(cells[0]["text"])
-            if len(r) > 1 and r[1]["c"] == 1:
-                # 実施主体は狭い列に1行に1つずつ印字されている（長い名前は途中で折り返す）ので、印字の行のまま
-                cells[1]["text"] = "\n".join(ln.text.strip() for ln in r[1]["lines"])
-        out.append(cells)
+        years = [cell_out(c) for c in r if c["c"] >= 2]
+        names.extend(ln for c in r if c["c"] == 0 for ln in c["lines"])
+        actors.extend(ln for c in r if c["c"] == 1 for ln in c["lines"])
+        if years:
+            part.append(years)
+        if len(part) == 3:
+            flush()
+    flush()
     return out
 
 
@@ -579,8 +591,11 @@ class Builder:
             self.skip = False
         if self.skip:
             return
-        if t == "：" or re.fullmatch(r"【施策】\s*[①-⑳].*", t):
-            # 成果指標名の前の「：」と、主な取組の表の上の帯（施策の見出しの繰り返し。2行に折り返したものは次の行も）
+        if t == "：":
+            # 成果指標名の前の「：」（大きな字で別の行になる）
+            return
+        if re.fullmatch(r"【施策】\s*[①-⑳].*", t):
+            # 主な取組の表の上の帯（施策の見出しの繰り返し。2行に折り返したものは次の行も）
             self.bar = ln
             return
         if self.bar is not None and self.bar.page == ln.page and ln.top - self.bar.top < ln.size * 1.8 and len(t) < 15:

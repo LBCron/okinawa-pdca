@@ -60,3 +60,9 @@ export function firstSentence(text: string | null | undefined) {
   const i = t.indexOf('。');
   return i >= 0 ? t.slice(0, i + 1) : t;
 }
+
+// 表の「1件（3件）」を、かっこの前と、かっこの中（累計や内訳）に分ける。かっこの中は下の行に出す（取組のページの活動指標の表・実施計画の主な取組）
+export const parenSplit = (raw: string) => {
+  const i = raw.search(/[（(]/);
+  return i > 0 ? [raw.slice(0, i).trimEnd(), raw.slice(i)] : [raw, ''];
+};
