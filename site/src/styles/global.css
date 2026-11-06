@@ -16,7 +16,8 @@
 :root {
   color-scheme: light;
   --bg: #eef3ff;
-  --paper: #ffffff;
+  /* カードの面。真っ白だとまぶしいので、地（--bg）の青紫を少し残して落とす */
+  --paper: #f7f8fd;
   --ink: #151a3d;
   --ink-2: #464c74;
   --line: #151a3d;
