@@ -665,6 +665,8 @@ html:has(.toc) {
   position: sticky; top: var(--toc-top); z-index: 20;
   margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 2px solid var(--hair);
 }
+/* 貼り付くまでは地を塗らない（地の波の上に目次の箱が浮いて見えないように）。貼り付いたかはスクリプトでしか分からないので、スクリプトが動かないときは塗ったまま */
+:root.js .toc:not(.stuck) { background: none; }
 .toc.stuck::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--toc-top); background: var(--bg); }
 .toc-head { height: 0; overflow: hidden; visibility: hidden; }
 .toc.stuck { margin-bottom: calc(-1 * var(--toc-head)); }
