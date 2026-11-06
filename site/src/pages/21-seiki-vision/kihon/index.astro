@@ -5,8 +5,7 @@
 // 途中で章の高さが変わって行き先からずれて止まるため（全部を描いても重くはない）。
 // 目次は全部の見出しを入れ子で持ち、スクリプトが動くときは、章と、いま読んでいる見出しまでの段だけを開く（scripts/honbun.ts）。
 // スマホの幅では目次を本文の上の貼り付いた「目次」のボタンから開く（スクリプトが動かないときは、本文の前にそのまま出す）。
-// スクリプトが動くときは、本文まで読み進めて（ヘッダーが隠れて）から上に1行を貼り付け、いま読んでいる見出しの名前と、右端にサイドメニューを開くボタンを置く
-// （どこまで読み進めても届くように。ヘッダーが見えているあいだは、ヘッダーのボタンと2つ並ばないよう出さない）。スマホの幅では「目次」のボタンがあるので行はいつも出し、メニューのボタンだけを隠す
+// その行の右端には、サイドメニューを開くボタンを置く（どこまで読み進めても届くように）。ヘッダーが見えているあいだは、ヘッダーのボタンと2つ並ばないよう隠す
 import Base from '../../../layouts/Base.astro';
 import ExtLink from '../../../components/ExtLink.astro';
 import MenuButton from '../../../components/MenuButton.astro';
@@ -40,7 +39,7 @@ const pdcaLink = (h: HonbunHeading) =>
 ---
 <Base title={meta.title} description={meta.description} ogType="article">
   <div class="hb">
-    {/* 上に貼り付く行（スクリプトが動くときだけ出す）。「目次」のボタンはスマホの幅だけ。いま読んでいる見出しの名前と、貼り付いたかどうか（stuck）は scripts/honbun.ts が入れる。
+    {/* スマホの幅で上に貼り付く行（スクリプトが動くときだけ出す）。いま読んでいる見出しの名前と、貼り付いたかどうか（stuck）は scripts/honbun.ts が入れる。
         すぐ前の目印が画面の上から出たら、貼り付いている */}
     <div class="hb-bar-mark" aria-hidden="true"></div>
     <div class="hb-bar">
@@ -118,22 +117,12 @@ const pdcaLink = (h: HonbunHeading) =>
   :global(html:has(.hb-nav)) { scroll-behavior: auto; }
   /* 目次と本文を横に並べると、サイト共通の幅（.wrap）では本文が 46em まで広がらないので、このページだけヘッダー・フッターごと広げる */
   :global(body:has(.hb) .wrap) { max-width: 1200px; }
-  /* 上に貼り付く行の下に、左に目次、右に本文。目次は貼り付く行の下から画面の下までに収め、目次の中だけを動かす。
-     --hb-bar は貼り付く行の高さ（上下の余白・ボタン・下の線）。スクリプトが動かず行を出さないときは 0 */
-  .hb { --hb-bar: 0px; display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0 40px; align-items: start; margin-top: 24px; }
-  :global(:root.js) .hb { --hb-bar: 58px; }
+  /* 左に目次、右に本文。目次は画面の高さに収め、目次の中だけを動かす */
+  .hb { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0 40px; align-items: start; margin-top: 24px; }
   .hb-bar { display: none; }
   .hb-bar-mark { grid-column: 1 / -1; height: 0; }
-  /* 貼り付くまでは高さを取らずに隠し、貼り付いたら行の高さだけ下の余白を負にして、本文の位置は変えない（下の目次と本文に重なるだけ） */
-  :global(:root.js) .hb-bar {
-    grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
-    margin: 0 -16px; padding: 0 16px; height: 0; overflow: hidden; visibility: hidden; background: var(--bg); border-bottom: 0 solid var(--hair);
-  }
-  :global(:root.js) .hb-bar.stuck { height: var(--hb-bar); margin-bottom: calc(-1 * var(--hb-bar)); padding-block: 8px; border-bottom-width: 2px; visibility: visible; }
-  .hb-open { display: none; }
-  .hb-now { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 0.9375rem; }
   .hb-nav {
-    position: sticky; top: var(--hb-bar); max-height: calc(100vh - var(--hb-bar)); overflow-y: auto; overscroll-behavior: contain;
+    position: sticky; top: 0; max-height: 100vh; overflow-y: auto; overscroll-behavior: contain;
     padding: 16px 8px 24px 0; font-size: 0.875rem; line-height: 1.55;
   }
   .hb-nav-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -158,7 +147,7 @@ const pdcaLink = (h: HonbunHeading) =>
   .hb-head { margin-bottom: 8px; }
   .hb-head h1 { margin: 0.1em 0 0.3em; }
   .hb-kicker { margin: 0; }
-  .hb-h { scroll-margin-top: calc(var(--hb-bar) + 16px); position: relative; isolation: isolate; }
+  .hb-h { scroll-margin-top: 16px; position: relative; isolation: isolate; }
   .hb-hlink { color: inherit; text-decoration: none; }
   .hb-hlink:hover { text-decoration: underline; text-decoration-color: var(--hair); }
   .hb-mark { margin-right: 0.5em; }
@@ -182,13 +171,17 @@ const pdcaLink = (h: HonbunHeading) =>
   /* スマホ・タブレットの幅: 目次は本文の上。スクリプトが動くときは、貼り付いた行の「目次」のボタンから全面に開く */
   @media (max-width: 900px) {
     .hb { grid-template-columns: minmax(0, 1fr); margin-top: 8px; }
-    :global(:root.js) .hb-bar, :global(:root.js) .hb-bar.stuck { height: auto; margin-bottom: 0; padding-block: 8px; border-bottom-width: 2px; overflow: visible; visibility: visible; }
-    .hb-bar:not(.stuck) :global(.menu-open) { visibility: hidden; }
     .hb-nav { position: static; max-height: none; padding: 0; margin-bottom: 16px; }
+    :global(:root.js) .hb-bar {
+      display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+      margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 2px solid var(--hair);
+    }
+    .hb-bar:not(.stuck) :global(.menu-open) { visibility: hidden; }
     .hb-open {
-      display: inline-flex; align-items: center; flex: none; font: inherit; font-family: var(--font-display); font-size: 0.9375rem; font-weight: 700; color: var(--ink); cursor: pointer;
+      flex: none; font: inherit; font-family: var(--font-display); font-size: 0.9375rem; font-weight: 700; color: var(--ink); cursor: pointer;
       padding: 4px 14px; min-height: 38px; border: 2px solid var(--line); border-radius: 999px; background: var(--paper);
     }
+    .hb-now { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 0.9375rem; }
     :global(:root.js) .hb-nav:not(.open) { display: none; }
     :global(:root.js) .hb-nav.open {
       position: fixed; inset: 0; z-index: 60; max-height: none; overflow-y: auto; margin: 0;
@@ -203,9 +196,9 @@ const pdcaLink = (h: HonbunHeading) =>
   @media (max-width: 560px) {
     .hb-body { padding: 20px 16px 24px; }
   }
-  /* 貼り付いたときは、中身をすっと出す（ページ内の目次の何のページかの1行と同じ。styles/global.css の「動き」） */
+  /* 貼り付いたときは、メニューのボタンをすっと出す（ページ内の目次の何のページかの1行と同じ。styles/global.css の「動き」） */
   @media (prefers-reduced-motion: no-preference) {
-    .hb-bar.stuck > * { animation: m-drop 0.18s ease-out; }
+    .hb-bar.stuck :global(.menu-open) { animation: m-drop 0.18s ease-out; }
   }
   @media print {
     .hb { display: block; }
