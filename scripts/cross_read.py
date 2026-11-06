@@ -139,9 +139,11 @@ def parse_seika_group(rows: list[list], h: int) -> dict | None:
 def read_pdf(job: tuple[int, str, str]) -> tuple[list[dict], list[dict], list[str]]:
     """1本の PDF の様式２のページを読み、成果指標と主な取組の行を返す。ページをまたいで施策を引き継ぐ。"""
     import pymupdf  # コンテナの中だけで使う（テストで比べ方の関数だけを読み込めるように）
+    import pymupdf4llm
 
-    if hasattr(pymupdf, "no_recommend_layout"):
-        pymupdf.no_recommend_layout()  # 表検出のたびに出る pymupdf_layout の案内を止める
+    # PyMuPDF 2 の find_tables は、既定で pymupdf_layout（ONNX のモデル）が表と見た範囲の表だけを返す。
+    # 読み直しは表の線から行と列を決める読み方で比べるので切る（モデルは CPU も多く使う）
+    pymupdf4llm.use_layout(False)
     year, source_id, path = job
     seika, torikumi, notes = [], [], []
     shisaku, group, cur, mode = None, None, None, None
