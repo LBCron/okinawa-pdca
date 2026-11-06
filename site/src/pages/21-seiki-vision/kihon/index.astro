@@ -107,6 +107,9 @@ const pdcaLink = (h: HonbunHeading) =>
 </Base>
 
 <style>
+  /* 目次から見出しへは、なめらかに動かさずにすぐ移る（全文が長く、遠くの章へはスクロールの動きが長くなるため）。
+     着いた見出しは、一度だけ淡くしるしを付けて消す（styles/global.css の「動き」の .hb-h:target） */
+  :global(html:has(.hb-nav)) { scroll-behavior: auto; }
   /* 左に目次、右に本文。目次は画面の高さに収め、目次の中だけを動かす */
   .hb { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0 40px; align-items: start; margin-top: 24px; }
   .hb-bar { display: none; }
@@ -133,7 +136,7 @@ const pdcaLink = (h: HonbunHeading) =>
   .hb-head { margin-bottom: 8px; }
   .hb-head h1 { margin: 0.1em 0 0.3em; }
   .hb-kicker { margin: 0; }
-  .hb-h { scroll-margin-top: 16px; }
+  .hb-h { scroll-margin-top: 16px; position: relative; isolation: isolate; }
   .hb-hlink { color: inherit; text-decoration: none; }
   .hb-hlink:hover { text-decoration: underline; text-decoration-color: var(--hair); }
   .hb-mark { margin-right: 0.5em; }
