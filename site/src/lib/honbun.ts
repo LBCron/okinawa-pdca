@@ -1,10 +1,10 @@
 // 新・沖縄21世紀ビジョン基本計画の本文（data/extracted/kihon。scripts/extract_kihon.py）を、ページで使う形にまとめる。
-// 本文は全部を1つのページ（/kihonkeikaku/）に載せ、ブラウザのページ内検索で全文を探せるようにする。章ごとにまとめ、画面の外の章は描かない（ページの style）
+// 本文は全部を1つのページ（/21-seiki-vision/kihon/）に載せ、ブラウザのページ内検索で全文を探せるようにする。章ごとにまとめ、画面の外の章は描かない（ページの style）
 import { load } from './data.ts';
 import { once } from './memo.ts';
 import type { HonbunHeading, KihonHonbunRow } from './types.ts';
 
-export const KIHON_KEIKAKU = { name: '新・沖縄21世紀ビジョン基本計画', href: '/kihonkeikaku/', period: '令和4〜13年度', published: '令和4年5月' };
+export const KIHON_KEIKAKU = { name: '新・沖縄21世紀ビジョン基本計画', href: '/21-seiki-vision/kihon/', period: '令和4〜13年度', published: '令和4年5月' };
 
 // 章（と「はじめに」）。blocks は章の見出しより後ろ
 export interface HonbunChapter { head: HonbunHeading; blocks: KihonHonbunRow[] }

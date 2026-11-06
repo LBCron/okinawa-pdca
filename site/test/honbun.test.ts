@@ -20,8 +20,8 @@ test('見出しの # は1つずつ違う', () => {
 });
 
 test('沖縄県PDCA のどの基本施策・施策にも、基本計画の本文の見出しがある', () => {
-  for (const k of getKihonList()) assert.equal(honbunHrefOf(k.id), `/kihonkeikaku/#${honbunAnchor(`4-${k.id}`)}`, `基本施策 ${k.id}`);
-  for (const s of getShisakuList()) assert.equal(honbunHrefOf(s.id), `/kihonkeikaku/#${honbunAnchor(`4-${s.id}`)}`, `施策 ${s.id}`);
+  for (const k of getKihonList()) assert.equal(honbunHrefOf(k.id), `/21-seiki-vision/kihon/#${honbunAnchor(`4-${k.id}`)}`, `基本施策 ${k.id}`);
+  for (const s of getShisakuList()) assert.equal(honbunHrefOf(s.id), `/21-seiki-vision/kihon/#${honbunAnchor(`4-${s.id}`)}`, `施策 ${s.id}`);
 });
 
 test('見出しの段と書き方', () => {

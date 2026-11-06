@@ -164,7 +164,7 @@ export const budgetMeta = (name: string, o: { year: number; estimate: string | n
   description: `沖縄県の予算事業「${name}」の決算額・予算額の推移と財源、この予算事業が書かれている主な取組です。${yearLong(o.year)}の報告では主な取組${fmt(o.torikumi)}件に書かれています。${o.estimate ? `決算見込額は${o.estimate}。` : ''}`,
 });
 
-// 基本計画の本文のページ（/kihonkeikaku/。全文を1ページに載せている）
+// 基本計画の本文のページ（/21-seiki-vision/kihon/。全文を1ページに載せている）
 export const honbunMeta = () => ({
   title: '新・沖縄21世紀ビジョン基本計画の本文',
   description: '新・沖縄21世紀ビジョン基本計画（令和4〜13年度。令和4年5月に沖縄県が策定）の本文を全部1ページに載せ、目次からたどって読めます。基本施策と施策の見出しから、沖縄県PDCAでの進み具合のページへ移れます。',

@@ -3,12 +3,12 @@
 // 全文が1ページにあるので、ブラウザのページ内検索で全文を探せる。章ごとに画面の外は描かない（content-visibility。ページ内検索と # の行き先には描く）。
 // 目次は全部の見出しを入れ子で持ち、スクリプトが動くときは、章と、いま読んでいる見出しまでの段だけを開く（scripts/honbun.ts）。
 // スマホの幅では目次を本文の上の貼り付いた「目次」のボタンから開く（スクリプトが動かないときは、本文の前にそのまま出す）
-import Base from '../../layouts/Base.astro';
-import ExtLink from '../../components/ExtLink.astro';
-import { KIHON_KEIKAKU, honbunChapters, honbunAnchor, headingTag, headingText, headingTree, splitNotes, type HonbunNode } from '../../lib/honbun.ts';
-import { honbunMeta } from '../../lib/describe.ts';
-import { planSourceLink } from '../../lib/plans.ts';
-import type { HonbunHeading, KihonHonbunRow } from '../../lib/types.ts';
+import Base from '../../../layouts/Base.astro';
+import ExtLink from '../../../components/ExtLink.astro';
+import { KIHON_KEIKAKU, honbunChapters, honbunAnchor, headingTag, headingText, headingTree, splitNotes, type HonbunNode } from '../../../lib/honbun.ts';
+import { honbunMeta } from '../../../lib/describe.ts';
+import { planSourceLink } from '../../../lib/plans.ts';
+import type { HonbunHeading, KihonHonbunRow } from '../../../lib/types.ts';
 
 const chapters = honbunChapters();
 const meta = honbunMeta();
