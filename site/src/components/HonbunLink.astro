@@ -1,0 +1,17 @@
+---
+// 基本計画の本文の見出しへのリンク（基本施策・施策・主な取組のページ）。ページの頭の県の吹き出しの終わりに置き、
+// 毎回使うものではないので青にせず補足のリンクの灰色にし、本の印と「読む」で何ができるかを伝える。吹き出しの無いページは補足の行（.head-meta）に置く。
+// id は基本施策か施策の ID。主な取組は基本計画の本文に無いので、入っている施策の見出しへ移る
+import { honbunHrefOf } from '../lib/honbun.ts';
+
+interface Props { id: string }
+const href = honbunHrefOf(Astro.props.id);
+---
+{href && (
+  <a class="sub-link" href={href}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 3.5C6.5 2.5 4.5 2.2 2 2.5v10c2.5-.3 4.5 0 6 1 1.5-1 3.5-1.3 6-1v-10c-2.5-.3-4.5 0-6 1Zm0 0v10" /></svg>基本計画の本文で読む</a>
+)}
+
+<style>
+  a { white-space: nowrap; }
+  svg { display: inline-block; width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -0.18em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+</style>

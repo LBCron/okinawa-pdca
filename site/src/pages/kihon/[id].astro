@@ -17,6 +17,7 @@ import ExtLink from '../../components/ExtLink.astro';
 import ShuyouStatusTag from '../../components/ShuyouStatusTag.astro';
 import Toc from '../../components/Toc.astro';
 import Says from '../../components/Says.astro';
+import HonbunLink from '../../components/HonbunLink.astro';
 import SecHead from '../../components/SecHead.astro';
 import { oneLine } from '../../lib/text.ts';
 import { HYOKA, KANKO, hyokaOf, planSourceLink, kankoOfPdcaShisaku } from '../../lib/plans.ts';
@@ -33,7 +34,7 @@ export const getStaticPaths = ROUTES['kihon/[id]'];
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { k } = Astro.props;
-// 基本計画の本文の、この基本施策の見出し（出典の節からリンクする）
+// 基本計画の本文の、この基本施策の見出し（頭の県の吹き出しと出典の節からリンクする）
 const honbun = honbunHrefOf(k.id);
 const shisaku = getShisakuList().filter((s) => s.kihon_id === k.id);
 const src = k.source && sourceLink(k.source, k.page);
@@ -84,6 +85,7 @@ const rmCount = new Set(shisaku.flatMap((s) => kankoOfPdcaShisaku(s).map((r) => 
     {k.mezasu && (
       <Says label="目指す姿（県の報告書から）">
         <p>{oneLine(k.mezasu)}</p>
+        <p class="honbun"><HonbunLink id={k.id} /></p>
       </Says>
     )}
   </header>
