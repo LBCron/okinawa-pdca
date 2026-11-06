@@ -82,10 +82,16 @@ if (nav && open) {
     const target = a && links.find((l) => l.a === a);
     if (!a || !target) return;
     // 同じ章の中の見出しへは、なめらかにスクロールして移る（どこからどこへ移ったかが分かる）。ほかの章へは、遠くて動きが長くなるので
-    // すぐ移る（ページの html の scroll-behavior: auto のまま）。押したあとに動くリンクの既定の動きに効かせるため、html に直接付けて、止まったら外す
+    // すぐ移る（ページの html の scroll-behavior: auto）。押したあとに動くリンクの既定の動きに効かせるため、html に直接付けて、止まったら外す。
+    // 章の中をなめらかに動いている途中に押すと、ブラウザはリンクの既定の動きで行き先を変えず、前の行き先へのスクロールを続けるので、
+    // 押した見出しへ動かし直す（ほかの章へはすぐ、同じ章の中はなめらかに）
     const chapterOf = (h?: HTMLElement) => h?.closest('.hb-ch') ?? document.querySelector('.hb-ch');
     const from = chapterOf(links.find((l) => l.a === cur)?.h);
-    if (moving() && from === chapterOf(target.h)) document.documentElement.style.scrollBehavior = 'smooth';
+    const smooth = moving() && from === chapterOf(target.h);
+    if (document.documentElement.style.scrollBehavior === 'smooth') {
+      requestAnimationFrame(() => target.h.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' }));
+    }
+    document.documentElement.style.scrollBehavior = smooth ? 'smooth' : '';
     clicked = target;
     // 開け閉めで目次の高さが変わっても、押したリンクは目次の中で同じ所にとどめる
     const before = a.getBoundingClientRect().top;
