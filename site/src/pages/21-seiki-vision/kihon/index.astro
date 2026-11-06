@@ -9,9 +9,13 @@
 import Base from '../../../layouts/Base.astro';
 import ExtLink from '../../../components/ExtLink.astro';
 import MenuButton from '../../../components/MenuButton.astro';
-import { KIHON_KEIKAKU, honbunChapters, honbunAnchor, headingTag, headingText, headingTree, splitNotes, type HonbunNode } from '../../../lib/honbun.ts';
+import {
+  KIHON_KEIKAKU, honbunChapters, honbunAnchor, honbunMdPath, honbunPdcaLink, headingTag, headingText, headingTree, printedPage, splitNotes, type HonbunNode,
+} from '../../../lib/honbun.ts';
 import { honbunMeta } from '../../../lib/describe.ts';
 import { planSourceLink } from '../../../lib/plans.ts';
+import { planTextLd } from '../../../lib/seo.ts';
+import { scriptJson } from '../../../lib/html.ts';
 import type { HonbunHeading, KihonHonbunRow } from '../../../lib/types.ts';
 
 const chapters = honbunChapters();
@@ -28,16 +32,13 @@ for (const b of chapters.flatMap((c) => [c.head, ...c.blocks])) {
   if (b.page !== lastPage) pageMarks.add(b);
   lastPage = b.page;
 }
-const printedOf = (b: { page: number; printed?: number }) => (b.printed ? `${b.printed}ページ` : `PDFの${b.page}ページ`);
 // 箇条（「① …」「1) …」）の段落は、2行目以降を印の後ろにそろえる（県の PDF と同じぶら下げ）
 const LIST_ITEM = /^([①-⑳]|\d+\))/;
-// 沖縄県PDCA のページ（基本施策・施策）。施策展開のページは無いので付けない
-const pdcaLink = (h: HonbunHeading) =>
-  h.pdca && h.level === 3 ? { href: `/kihon/${h.pdca}/`, label: 'この基本施策の進み具合' }
-  : h.pdca && h.level === 5 ? { href: `/shisaku/${h.pdca}/`, label: 'この施策の進み具合' }
-  : null;
+// 構造化データ。もとにした県の計画（PDF）と計画の期間を書く
+const ld = planTextLd({ ...meta, path: KIHON_KEIKAKU.href, plan: { name: KIHON_KEIKAKU.name, url: src?.href ?? '', fy: KIHON_KEIKAKU.fy, date: KIHON_KEIKAKU.date } });
 ---
 <Base title={meta.title} description={meta.description} ogType="article">
+  <script type="application/ld+json" is:inline set:html={scriptJson(ld)} />
   <div class="hb">
     {/* スマホの幅で上に貼り付く行（スクリプトが動くときだけ出す）。いま読んでいる見出しの名前と、貼り付いたかどうか（stuck）は scripts/honbun.ts が入れる。
         すぐ前の目印が画面の上から出たら、貼り付いている */}
@@ -79,10 +80,10 @@ const pdcaLink = (h: HonbunHeading) =>
         <section class="hb-ch" aria-labelledby={honbunAnchor(c.head.id)}>
           {[c.head, ...c.blocks].map((b) => (
             <>
-              {pageMarks.has(b) && <ExtLink class="hb-pg" href={pageHref(b.page)} title={`PDF の ${b.page}ページ目`}>{printedOf(b)}</ExtLink>}
+              {pageMarks.has(b) && <ExtLink class="hb-pg" href={pageHref(b.page)} title={`PDF の ${b.page}ページ目`}>{printedPage(b)}</ExtLink>}
               {b.kind === 'h' ? (() => {
                 const Tag = headingTag(b.level);
-                const link = pdcaLink(b);
+                const link = honbunPdcaLink(b);
                 return (
                   <>
                     <Tag id={honbunAnchor(b.id)} class:list={['hb-h', `lv${b.level}`]}><a class="hb-hlink" href={`#${honbunAnchor(b.id)}`}>{b.mark && <span class="hb-mark">{b.level === 1 ? `第${b.mark}章` : b.mark}</span>}{b.title}</a></Tag>
@@ -91,7 +92,7 @@ const pdcaLink = (h: HonbunHeading) =>
                 );
               })()
               : b.kind === 'label' ? <p class="hb-label">{b.text}</p>
-              : b.kind === 'fig' ? <p class="hb-fig small">図は省いています（<ExtLink href={pageHref(b.page)}>PDF の{printedOf(b)}</ExtLink>）</p>
+              : b.kind === 'fig' ? <p class="hb-fig small">図は省いています（<ExtLink href={pageHref(b.page)}>PDF の{printedPage(b)}</ExtLink>）</p>
               : <p class:list={['hb-p', LIST_ITEM.test(b.text) && 'item']}>{splitNotes(b.text).map((s) => (s.note ? <span class="hb-note" title="県の資料編に用語の説明があります">*</span> : s.text))}</p>}
             </>
           ))}
@@ -106,6 +107,9 @@ const pdcaLink = (h: HonbunHeading) =>
           「*」の付いた言葉は、県の資料編に用語の説明があります。
         </p>
         <p>計画の本文の著作権は沖縄県にあります。引用するときは、PDF で確かめてください。</p>
+        <p class="hb-md">
+          テキストで読むときや AI に読ませるときは、章ごとの Markdown もあります（{chapters.map((c, i) => <>{i > 0 && '・'}<a href={honbunMdPath(c)}>{c.head.mark ? `第${c.head.mark}章` : 'はじめに'}</a></>)}）。
+        </p>
       </section>
     </article>
   </div>
@@ -167,6 +171,7 @@ const pdcaLink = (h: HonbunHeading) =>
   .hb-body :global(a.hb-pg) { float: right; clear: right; margin: 0.35em 0 0.2em 12px; font-size: 0.75rem; line-height: 1.4; color: var(--muted); text-decoration-color: var(--hair); }
   .hb-about { margin-top: 40px; color: var(--ink-2); clear: both; }
   .hb-about-h { font-size: 1rem; margin: 0 0 0.3em; }
+  .hb-md a { white-space: nowrap; }
 
   /* スマホ・タブレットの幅: 目次は本文の上。スクリプトが動くときは、貼り付いた行の「目次」のボタンから全面に開く */
   @media (max-width: 900px) {

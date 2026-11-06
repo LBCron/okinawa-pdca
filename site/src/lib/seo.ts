@@ -81,3 +81,75 @@ export const breadcrumbLd = (items: { href?: string; label: string }[], here: st
     .flatMap((it, i) => (i === items.length - 1 ? [{ name: it.label, href: here }] : it.href ? [{ name: it.label, href: it.href }] : []))
     .map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: absUrl(it.href) })),
 });
+
+// 県の計画の本文を載せたページ（/21-seiki-vision/kihon/）。計画は isBasedOn に作り手を県にして書き、計画の期間（fy の年度）は temporalCoverage に
+// 年度の初めの4月から終わりの翌年3月までで書く
+export const planTextLd = (o: {
+  title: string; description: string; path: string; plan: { name: string; url: string; fy: [number, number]; date: string };
+}) => ({
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: o.title,
+  url: absUrl(o.path),
+  description: o.description,
+  inLanguage: 'ja',
+  isPartOf: { '@type': 'WebSite', name: SITE.name, url: absUrl('/') },
+  publisher: ORG,
+  isBasedOn: {
+    '@type': 'CreativeWork',
+    name: o.plan.name,
+    url: o.plan.url,
+    author: PREF,
+    datePublished: o.plan.date,
+    temporalCoverage: `${o.plan.fy[0]}-04/${o.plan.fy[1] + 1}-03`,
+  },
+});
+
+// /llms.txt（AI 向けの案内。https://llmstxt.org/ の形）。サイトの中身と主なページの URL を短く並べる。
+// 数はデータが増えると変わるので書かない。plan は基本計画（lib/honbun.ts の KIHON_KEIKAKU）と、本文の章ごとの Markdown
+const LLMS_PAGES = [
+  ['/pdca/', '沖縄県PDCAについて', '仕組み・計画の階層と指標のつながり・達成率の物差し・用語'],
+  ['/future/', '5つの将来像', '将来像と基本施策の一覧。基本施策のページ（/kihon/<ID>/）に主要指標と主な取組の進み具合'],
+  ['/shisaku/', '施策をさがす', '施策を将来像・判定・くらしのテーマ・担当部局で絞り込む。施策のページ（/shisaku/<ID>/）に判定・成果指標・主な取組'],
+  ['/torikumi/', '取組をさがす', '主な取組を年度ごとの進捗状況つきで探す'],
+  ['/shihyou/', '成果指標をさがす', '施策ごとの成果指標を達成率・見通しで探す'],
+  ['/mokuji/', '計画の目次', '将来像から主な取組までの階層'],
+  ['/theme/', 'くらしのテーマ', '子ども・子育て・観光・交通などで施策と取組をまとめたもの（このサイト独自の分類）'],
+  ['/bukyoku/', '部局', '県の部局ごとの取組・成果指標・予算'],
+  ['/yosan/', '予算と財源', '主な取組の予算事業の決算額・当初予算額と財源'],
+  ['/data/', 'データについて', 'もとにした県の報告書（出典）・読み取り方・数え方・県の公表値とのずれ'],
+  ['/about/', 'このサイトについて', '作っている団体・ソースコードとライセンス'],
+] as const;
+
+export function llmsTxt(plan: { name: string; href: string; period: string; chapters: { title: string; path: string }[] }) {
+  const link = (path: string, title: string, note?: string) => `- [${title}](${absUrl(path)})${note ? `: ${note}` : ''}`;
+  return [
+    `# ${SITE.name}`,
+    '',
+    `> ${SITE.tagline}。沖縄県PDCA（新・沖縄21世紀ビジョン実施計画の施策と主な取組を、県が毎年度点検した結果。令和4年度から）を、県の報告書の PDF から読み取って見せています。` +
+      `${PROJECT.org} が作っていて、沖縄県のサイトではありません。`,
+    '',
+    '- 数字と文は県の報告書のものです。各ページに出典（県の PDF とそのページ）があります。',
+    '- 状態の言葉（施策の判定 A〜G・主な取組の進捗状況・指標の達成状況）は県の区分のままです。',
+    '- 実施計画は前期（令和4〜6年度）と中期（令和7年度から）で基準値・目標値が変わるので、達成率は期間をまたいで比べられません。',
+    '',
+    '## 主なページ',
+    '',
+    link('/', 'トップ', '全体の進み具合'),
+    ...LLMS_PAGES.map(([path, title, note]) => link(path, title, note)),
+    '',
+    `## ${plan.name}の本文`,
+    '',
+    `県の基本計画（${plan.period}）の本文を章ごとに Markdown にしたもの。段落の前に印字のページと PDF のそのページへのリンクがあります。`,
+    '',
+    link(plan.href, '全文（HTML の1ページ）'),
+    ...plan.chapters.map((p) => link(p.path, p.title)),
+    '',
+    '## Optional',
+    '',
+    link('/keikaku/', '個別計画', '観光ロードマップPDCA など、沖縄県PDCAとは別の評価'),
+    link('/iken/', '意見を伝えたい人へ', '県に意見を伝える方法'),
+    link('/sitemap.xml', 'sitemap.xml', '全ページの URL'),
+    '',
+  ].join('\n');
+}

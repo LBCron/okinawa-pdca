@@ -46,6 +46,7 @@
 - 全ページの head に `canonical` と `og:url`（本番のドメインでのそのページの URL。クエリは付けない）を出す。どの URL にも出る 404 のページだけは出さない。
 - `sitemap.xml` は `astro.config.ts` の小さな統合が作る（依存を足さないため `@astrojs/sitemap` は使わない）。`robots.txt` は巡回を止めない（[deploy.md](deploy.md) の4章）。
 - 構造化データ（JSON-LD）では、県を作り手として書かない（県は `isBasedOn` に並べた資料の作り手として書く）。`<script type="application/ld+json">` はデータで、動くスクリプトではないので、CSP のハッシュは要らない。
+- AI 向けに `/llms.txt`（`lib/seo.ts`）と、計画の本文の章ごとの Markdown（`lib/honbun.ts`）を書き出す。ページからは読み込まず、URL を知っている人と AI が取りに来るファイルなので、1章の「データ全体を配らない」には当たらない。ページではないので sitemap.xml と `urls.txt` には入れない。
 - SNS のカードの画像は、施策・基本施策・将来像・くらしのテーマ・部局・主な取組のページと指標のシェア用のページはページごとの画像（`lib/card.ts`）、ほかのページはサイト共通の `public/og-image.png`（`make og-image`）。
   - ページごとの画像の中身はページの頭と同じ数で、内訳は区分の並びのまま、0でない区分を全部同じ大きさで並べ、状態は形と文字でも出す（[design.md](design.md) の1・2章）。
   - `og:image` の URL には中身のハッシュを `?v=` で付け、中身が変わったら SNS が取り直すようにする。

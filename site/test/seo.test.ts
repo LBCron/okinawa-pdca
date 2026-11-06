@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { scriptJson } from '../src/lib/html.ts';
-import { OG_IMAGE, absUrl, sitemapPaths, sitemapXml, robotsTxt, websiteLd, breadcrumbLd, duplicateHeads } from '../src/lib/seo.ts';
+import { OG_IMAGE, absUrl, sitemapPaths, sitemapXml, robotsTxt, websiteLd, breadcrumbLd, duplicateHeads, planTextLd, llmsTxt } from '../src/lib/seo.ts';
+import { KIHON_KEIKAKU } from '../src/lib/honbun.ts';
 import { SITE, PROJECT } from '../src/lib/links.ts';
 
 test('本番のドメインは https で、末尾にスラッシュがある', () => {
@@ -82,4 +83,22 @@ test('ページの階層の BreadcrumbList は1から番号を振り、いまの
   ]);
   // いまのページに href があっても here にする
   assert.equal(breadcrumbLd([{ href: '/future/', label: '計画' }, { href: '/kihon/1-1/', label: '基本施策' }], '/kihon/1-1/').itemListElement[1].item, `${SITE.url}kihon/1-1/`);
+});
+
+test('計画の本文のページの JSON-LD: 作り手は Code for Okinawa、もとにした計画の作り手は県、計画の期間は年度の4月から翌年3月まで', () => {
+  const ld = planTextLd({ title: 'T', description: 'D', path: KIHON_KEIKAKU.href, plan: { name: KIHON_KEIKAKU.name, url: 'https://example.jp/a.pdf', fy: KIHON_KEIKAKU.fy, date: KIHON_KEIKAKU.date } });
+  assert.equal(ld.url, `${SITE.url}21-seiki-vision/kihon/`);
+  assert.equal(ld.publisher.name, PROJECT.org);
+  assert.equal(ld.isBasedOn.author.name, '沖縄県');
+  assert.equal(ld.isBasedOn.temporalCoverage, '2022-04/2032-03');
+  assert.equal(KIHON_KEIKAKU.period, '令和4〜13年度');
+});
+
+test('llms.txt: サイトの名前の見出し・要約の引用・本番の URL のリンク', () => {
+  const txt = llmsTxt({ ...KIHON_KEIKAKU, chapters: [{ title: '第１章 総説', path: '/21-seiki-vision/kihon/1.md' }] });
+  assert.ok(txt.startsWith(`# ${SITE.name}\n\n> `));
+  assert.ok(txt.includes(`- [第１章 総説](${SITE.url}21-seiki-vision/kihon/1.md)`));
+  assert.ok(txt.includes(`(${SITE.url}pdca/)`));
+  // リンクはすべて本番のドメイン
+  for (const m of txt.matchAll(/\]\(([^)]+)\)/g)) assert.ok(m[1].startsWith(SITE.url), m[1]);
 });

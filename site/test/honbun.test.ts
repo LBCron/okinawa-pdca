@@ -1,7 +1,8 @@
 // lib/honbun.ts（基本計画の本文を1ページに載せる）。data/extracted/kihon を読む
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { honbunChapters, honbunHrefOf, honbunAnchor, headingTag, headingText, headingTree, splitNotes } from '../src/lib/honbun.ts';
+import { honbunChapters, honbunHrefOf, honbunAnchor, honbunMarkdown, honbunMdPath, headingTag, headingText, headingTree, mdText, splitNotes } from '../src/lib/honbun.ts';
+import { SITE } from '../src/lib/links.ts';
 import { load, getKihonList, getShisakuList } from '../src/lib/data.ts';
 import type { HonbunHeading } from '../src/lib/types.ts';
 
@@ -42,4 +43,32 @@ test('headingTree: 見出しを段の深さのまま入れ子にする（段が�
 test('splitNotes: 用語の注の印「*」を分ける', () => {
   assert.deepEqual(splitNotes('地域循環共生圏*の考え方'), [{ text: '地域循環共生圏', note: false }, { text: '*', note: true }, { text: 'の考え方', note: false }]);
   assert.deepEqual(splitNotes('印の無い文'), [{ text: '印の無い文', note: false }]);
+});
+
+test('mdText: 本文の文字を Markdown の書式として読ませない', () => {
+  assert.equal(mdText('地域循環共生圏*の形成'), '地域循環共生圏\\*の形成');
+  assert.equal(mdText('1) 観光の振興'), '1\\) 観光の振興');
+  assert.equal(mdText('- a_b [c] <d>'), '\\- a\\_b \\[c\\] \\<d>');
+  assert.equal(mdText('４つの課題'), '４つの課題');
+});
+
+test('章ごとの Markdown: 章が #、見出しの段は # の数。本文の段落を全部入れ、ページの頭に PDF へのリンクを置く', () => {
+  const chapters = honbunChapters();
+  assert.equal(new Set(chapters.map(honbunMdPath)).size, chapters.length);
+  assert.equal(honbunMdPath(chapters[0]), '/21-seiki-vision/kihon/hajimeni.md');
+  assert.equal(honbunMdPath(chapters[1]), '/21-seiki-vision/kihon/1.md');
+  for (const c of chapters) {
+    const md = honbunMarkdown(c);
+    const lines = md.split('\n');
+    assert.equal(lines[0], `# ${headingText(c.head)}`);
+    assert.equal(lines.filter((l) => /^# /.test(l)).length, 1, c.head.id);
+    const hs = c.blocks.filter((b) => b.kind === 'h');
+    assert.equal(lines.filter((l) => /^#{2,5} /.test(l)).length, hs.length, c.head.id);
+    assert.equal(lines.filter((l) => /^\[〔/.test(l)).length, new Set([c.head, ...c.blocks].map((b) => b.page)).size, c.head.id);
+    assert.ok(!md.includes('undefined'));
+  }
+  const md = honbunMarkdown(chapters.find((c) => c.head.id === '4')!);
+  assert.ok(md.includes('\n##### ① '));
+  assert.ok(md.includes(`(${SITE.url}shisaku/1-1-a-1/)`));
+  assert.match(md, /\[〔31ページ〕\]\(https:\/\/www\.pref\.okinawa\.jp\/.+\.pdf#page=39\)/);
 });
