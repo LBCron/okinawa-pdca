@@ -23,7 +23,10 @@ const sitemap: AstroIntegration = {
       const listed = paths.filter((p) => !share.has(p));
       await writeFile(new URL('sitemap.xml', dir), sitemapXml(listed));
       logger.info(`sitemap.xml に ${listed.length} ページを書いた（シェア用の ${paths.length - listed.length} ページは入れない）`);
-      const dups = duplicateHeads(await Promise.all(listed.map(async (path) => ({ path, html: await readFile(new URL(`.${path}index.html`, dir), 'utf-8') }))));
+      // 1つずつ読む（全ページを一度に開くと、Cloudflare のビルドで開けるファイルの数を超える。EMFILE）
+      const heads: { path: string; html: string }[] = [];
+      for (const path of listed) heads.push({ path, html: await readFile(new URL(`.${path}index.html`, dir), 'utf-8') });
+      const dups = duplicateHeads(heads);
       for (const d of dups) logger.warn(`${d.kind}が同じページが ${d.paths.length} ある: ${d.text.slice(0, 60)} ${d.paths.slice(0, 3).join(' ')}`);
     },
   },
