@@ -1,0 +1,10 @@
+---
+// サイドメニュー（layouts/Base.astro の #site-menu）を開くボタン。ヘッダーと、長いページで上に貼り付く所（ページ内の目次・基本計画の本文の目次）に置き、
+// どこまで読み進めてもメニューに届くようにする（scripts/menu.ts）。スクリプトが動かないときは出さない。スマホの幅では印だけにする（styles/global.css の .menu-open）
+interface Props { class?: string }
+const { class: cls } = Astro.props;
+---
+<button type="button" class:list={['menu-open', cls]} aria-haspopup="dialog" aria-expanded="false" aria-controls="site-menu">
+  <svg class="menu-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" /></svg>
+  <span class="menu-label">メニュー</span>
+</button>

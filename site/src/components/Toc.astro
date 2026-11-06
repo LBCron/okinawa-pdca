@@ -1,8 +1,9 @@
 ---
 // ページ内の目次。画面の上に固定する（styles/global.css の .toc）。いま読んでいる節のリンクには印を付ける（scripts/toc.ts。layouts/Base.astro が読み込む）。
 // head を渡すと、目次が画面の上に貼り付いたあと（ページの頭が見えなくなったあと）、リンクの上に何のページか（区分・名前と、slot="status" の判定など）を1行で出す（scripts/toc.ts）。
-// 中身はページの頭（h1 と判定の札）と同じなので、読み上げでは読まない
+// 中身はページの頭（h1 と判定の札）と同じなので、読み上げでは読まない。その1行の右端には、サイドメニューを開くボタンを置く（ヘッダーまで戻らずに開けるように）
 import Sz from './Sz.astro';
+import MenuButton from './MenuButton.astro';
 
 interface Link { href: string; label: string; title?: string }
 // tag: 区分の札の色。くらしのテーマ（このサイト独自の分類）はピンクの ttag、個別計画は淡い紫の plan-tag。sz: 将来像の番号の印を区分の前に置く
@@ -20,12 +21,13 @@ const status = Astro.slots.has('status');
 <div class="toc-mark" aria-hidden="true"></div>
 <nav class="toc" aria-label={label}>
   {head && (
-    <div class="toc-head" aria-hidden="true">
-      <div class="toc-head-in">
+    <div class="toc-head">
+      <div class="toc-head-in" aria-hidden="true">
         {head.kind && <span class:list={['toc-kind', head.tag]}>{head.sz && <Sz id={head.sz} sr={false} />}{head.kind}</span>}
         <span class="toc-title">{head.title}</span>
         {status && <span class="toc-st"><slot name="status" /></span>}
       </div>
+      <MenuButton />
     </div>
   )}
   <div class="toc-links" data-scroll-hint>

@@ -1,0 +1,12 @@
+---
+// 年の書き方（scripts/era.ts）と配色（scripts/theme.ts）の切り替えボタン。フッターとサイドメニュー（layouts/Base.astro）の2か所に置く。
+// 文字と記号は、いまの書き方・配色でないほうを styles/global.css が選ぶ。data-src は年の書き方の書き換えのスクリプト
+import { ERA_JS_PATH } from '../lib/era.ts';
+---
+<button type="button" class="line-btn era-toggle" data-src={ERA_JS_PATH}>
+  <span class="to-seireki">西暦で表示</span><span class="to-wareki">令和で表示</span>
+</button>
+<button type="button" class="line-btn theme-toggle" aria-label="ダークモードに切り替える">
+  <span class="to-dark" aria-hidden="true">☾</span><span class="theme-label to-dark">ダーク</span>
+  <span class="to-light" aria-hidden="true">☀</span><span class="theme-label to-light">ライト</span>
+</button>
