@@ -7,9 +7,11 @@ import { DEPTS, getBudgetProjects, getKihonList, getSeikaGroups, getShisakuList,
 import { getActivityShares } from './katsudou.ts';
 import { kankoTenkaiList } from './plans.ts';
 import { getThemes } from './themes.ts';
+import { JISSHI_PLANS } from './honbun.ts';
 
 // キーは src/pages の中のファイルのパス（拡張子なし）。各ページは export const getStaticPaths = ROUTES['shisaku/[id]'] のように使う
 export const ROUTES = {
+  '21-seiki-vision/[jisshi]/index': () => JISSHI_PLANS.map((plan) => ({ params: { jisshi: `jisshi-${plan}` }, props: { plan } })),
   'bukyoku/[slug]': () => DEPTS.map((dept) => ({ params: { slug: dept.slug }, props: { dept } })),
   'future/[id]': () => getShouraizou().map((v) => ({ params: { id: String(v.id) }, props: { v } })),
   'katsudou/[shisaku]/[slug]': () => getActivityShares().map((a) => ({ params: { shisaku: a.torikumi.shisaku.id, slug: keySlug(a.key) }, props: { a } })),

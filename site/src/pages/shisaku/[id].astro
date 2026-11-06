@@ -31,7 +31,7 @@ import IkkatsuCard from '../../components/IkkatsuCard.astro';
 import Says from '../../components/Says.astro';
 import SecHead from '../../components/SecHead.astro';
 import { KANKO, IKKATSU_LATEST, IKKATSU_HREF, GRADES, ikkatsuOf, kankoOfPdcaShisaku, kankoShisakuHref, countGrades } from '../../lib/plans.ts';
-import { honbunHrefOf } from '../../lib/honbun.ts';
+import { HONBUN_PLANS, JISSHI_PLANS, honbunHrefOf } from '../../lib/honbun.ts';
 
 // URL は lib/routes.ts で決める（docs/site.md の 8章）
 export const getStaticPaths = ROUTES['shisaku/[id]'];
@@ -41,6 +41,8 @@ const { s } = Astro.props;
 const kihon = getKihonList().find((k) => k.id === s.kihon_id)!;
 // 基本計画の本文の、この施策の見出し（出典の節からリンクする）
 const honbun = honbunHrefOf(s.id);
+// 実施計画（前期・中期）の本文の、この施策の見出し（施策の方向・成果指標・主な取組を決めた所）
+const jisshi = JISSHI_PLANS.flatMap((p) => { const href = honbunHrefOf(s.id, p); return href ? [{ href, label: HONBUN_PLANS[p].short }] : []; });
 // 主な取組（年度をまたいだまとまり。報告書の順）
 const tRows = getTorikumiGroups().filter((g) => g.shisaku.id === s.id);
 const sRows = seikaGroupsOf(s.id);
@@ -261,6 +263,7 @@ const rmShisaku = kankoOfPdcaShisaku(s);
     <SecHead id="source" class="anchor">出典</SecHead>
     <p class="small">県の報告書での番号は<strong class="report-no">施策 {s.code}</strong>（<span class="report-no">基本施策 {kihon?.code}</span>）です。</p>
     {honbun && <p class="small">この施策を決めた計画の文章: <a href={honbun}>新・沖縄21世紀ビジョン基本計画の本文（第4章 {s.code}）</a></p>}
+    {jisshi.length > 0 && <p class="small">施策の方向・成果指標・主な取組を決めた計画: {jisshi.map((j, i) => <>{i > 0 && '・'}<a href={j.href}>{j.label}</a></>)}</p>}
     <ul class="small">
       {yearsDesc.map((y) => {
         const r = s.years[y];

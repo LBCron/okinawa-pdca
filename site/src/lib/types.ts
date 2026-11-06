@@ -342,18 +342,34 @@ export interface HyokaKihonRow {
   page_end: number;
 }
 
-// ---------------------------------------------------------------- 基本計画の本文（kihon/）
+// ---------------------------------------------------------------- 基本計画・実施計画の本文（kihon/・jisshi/）
 
-// honbun.json の1行（scripts/extract_kihon.py）。page は PDF のページ、printed は印字のページ（「はじめに」には無い）
-interface HonbunBase { page: number; printed?: number; source: string }
-// 見出し。level は 1 章（と「はじめに」）・2 「１」・3 「⑴」・4 「ア」・5 「①」。pdca は第4章の見出しに当たる沖縄県PDCA の基本施策・施策展開・施策の ID
+// 本文の1行（scripts/extract_kihon.py・extract_jisshi.py）。source は分冊、page は PDF のページ、printed は印字のページ（「はじめに」には無い）。
+// transcribed は、県の PDF の文字が図形で読めないページを、画像を読んで文字にしたもの（実施計画（中期）の一部）
+interface HonbunBase { page: number; printed?: number; source: string; transcribed?: boolean }
+// 見出し。level は 1 章・2 「１」（実施計画の第2章は将来像）・3 「⑴」（基本施策）・4 「ア」（施策展開）・5 「①」（施策）。
+// pdca は基本施策・施策展開・施策の見出しに当たる沖縄県PDCA の ID
 export interface HonbunHeading extends HonbunBase { kind: 'h'; level: 1 | 2 | 3 | 4 | 5; id: string; mark: string; title: string; pdca?: string }
+// 表のセル。cs・rs は列・行のまたぎ（1 のときは無い）。group は主な取組の表の「○…」の行、torikumi は主な取組の名前のセルの取組名
+export interface HonbunCell { text: string; cs?: number; rs?: number; group?: boolean; torikumi?: string }
+// 表（実施計画）。table は種類（shuyou 主要指標・seika 成果指標・kyodo 協働の主体・torikumi 主な取組・other）。
+// caption は成果指標の名前、shisaku は主な取組の表の施策の ID、pages はページをまたいだ表のページ
+export interface HonbunTable extends HonbunBase {
+  kind: 'table';
+  table: 'shuyou' | 'seika' | 'kyodo' | 'torikumi' | 'other';
+  caption?: string;
+  head: HonbunCell[][];
+  body: HonbunCell[][];
+  shisaku?: string | null;
+  pages?: number[];
+}
 export type KihonHonbunRow =
   | HonbunHeading
   | (HonbunBase & { kind: 'p' | 'label'; text: string }) // 段落・見出しの付かない小見出し
   | (HonbunBase & { kind: 'fig' }); // 図（中身は読まない）
+export type HonbunRow = KihonHonbunRow | HonbunTable;
 
-// 個別計画などの報告書（kanko・ikkatsu・hyoka・kihon の sources.json）
+// 個別計画などの報告書（kanko・ikkatsu・hyoka・kihon・jisshi の sources.json）。plan は実施計画の前期・中期
 export interface PlanSourceRow {
   id: string;
   file_url: string;
@@ -362,6 +378,7 @@ export interface PlanSourceRow {
   page_title: string;
   year?: number;
   kind?: string;
+  plan?: string;
 }
 
 // ---------------------------------------------------------------- 人が用意した参照データ（data/reference/）
@@ -435,4 +452,7 @@ export interface ExtractedFiles {
   'hyoka/sources': PlanSourceRow[];
   'kihon/honbun': KihonHonbunRow[];
   'kihon/sources': PlanSourceRow[];
+  'jisshi/zenki': HonbunRow[];
+  'jisshi/chuki': HonbunRow[];
+  'jisshi/sources': PlanSourceRow[];
 }

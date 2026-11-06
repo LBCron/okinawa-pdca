@@ -1,0 +1,57 @@
+---
+// 実施計画（前期・中期）の本文と表を全部載せた1つのページ（形は components/Honbun.astro）
+import type { InferGetStaticPropsType } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import ExtLink from '../../../components/ExtLink.astro';
+import Honbun from '../../../components/Honbun.astro';
+import { ROUTES } from '../../../lib/routes.ts';
+import { HONBUN_PLANS, JISSHI_PLANS, VISION_HREF, honbunRows } from '../../../lib/honbun.ts';
+import { honbunMeta } from '../../../lib/describe.ts';
+import { planSourceLink, planSources } from '../../../lib/plans.ts';
+
+// URL は lib/routes.ts で決める（docs/site.md の 8章）
+export const getStaticPaths = ROUTES['21-seiki-vision/[jisshi]/index'];
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { plan } = Astro.props;
+const info = HONBUN_PLANS[plan];
+const meta = honbunMeta(plan);
+// 分冊（県のページの並び）
+const books = planSources('jisshi').filter((s) => s.plan === plan).flatMap((s) => planSourceLink('jisshi', s.id) ?? []);
+// もう1つの実施計画（前期なら中期）
+const other = HONBUN_PLANS[JISSHI_PLANS.find((p) => p !== plan)!];
+// 画像から読んだかたまりのある章と基本施策（県の PDF の文字が図形で読めないページ）
+const rows = honbunRows(plan);
+const transcribedHeads: string[] = [];
+let chapter = '', kihon = '';
+for (const b of rows) {
+  if (b.kind === 'h' && b.level === 1) chapter = b.mark ? `第${b.mark}章` : b.title;
+  if (b.kind === 'h' && b.level <= 3) kihon = b.level === 3 ? `基本施策 ${b.mark}` : `${chapter}の一部`;
+  if (b.transcribed && !transcribedHeads.includes(kihon)) transcribedHeads.push(kihon);
+}
+---
+<Base title={meta.title} description={meta.description} ogType="article">
+  <Honbun plan={plan}>
+    <Fragment slot="lead">
+      <p class="lead">
+        沖縄県が{info.published}に策定した、{info.period}の実施計画です。<a href={HONBUN_PLANS.kihon.href}>基本計画</a>の基本施策ごとに目指す姿と主要指標を、施策ごとに施策の方向・成果指標と目標値・主な取組と年度ごとの活動指標を決めています。沖縄県PDCAは、この計画の施策と主な取組がどこまで進んだかを毎年度確かめたものです。
+        県の PDF の本文と表を全部このページに載せているので、ブラウザのページ内検索（パソコンは Ctrl+F・⌘F）で全文から探せます。基本施策と施策の見出しからはこのサイトのその進み具合のページへ、主な取組の名前からはその取組のページへ移れます。
+      </p>
+      <p class="small secondary">
+        {other.short}（{other.period}）は<a href={other.href}>こちら</a>。前期と中期では、成果指標や基準値・目標値が見直されています。<a href={VISION_HREF}>計画のつながり</a>
+      </p>
+      {transcribedHeads.length > 0 && (
+        <p class="small secondary">{transcribedHeads.join('・')}は、県の PDF の文字が図形になっていて読み取れないため、ページの画像を読んで文字にしました。読み違いがあるかもしれないので、数字は PDF で確かめてください（ページの頭に「画像から読んだページ」と出しています）。</p>
+      )}
+    </Fragment>
+    <Fragment slot="about">
+      <p>沖縄県の{info.name}（{info.published}）の PDF の文字を読み取ったものです。県は本文を{books.length}つの PDF に分けて公開しています。</p>
+      <ul>{books.map((b) => <li><ExtLink href={b.href}>{b.label}</ExtLink></li>)}</ul>
+      <p>
+        段落の中の改行は画面の幅に合わせ、ページの区切りは段落の頭に印字のページで示しています。表のセルの中の改行は印字のままです。
+        グラフと図、「基本施策の体系」「施策展開の体系」の図（見出しの一覧）、第2章の頭の施策体系表と記載例は省いています（PDF で見てください）。
+        {transcribedHeads.length > 0 && `${transcribedHeads.join('・')}は、ページの画像を読んで文字にしたものです。`}
+      </p>
+    </Fragment>
+  </Honbun>
+</Base>
