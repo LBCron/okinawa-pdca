@@ -20,7 +20,7 @@ for (const toc of document.querySelectorAll<HTMLElement>('.toc')) {
   if (!links.length && !head) continue;
   let cur: HTMLAnchorElement | null = null;
   const update = () => {
-    // 目次の貼り付く位置（画面の上からの px）。ふつうは 0 で、アプリの中のブラウザではアプリが上を覆うと知らせる高さ（styles/global.css の .toc）
+    // 目次の貼り付く位置（画面の上からの px）。ふつうは 0 で、スマホでは端末やアプリに覆われる高さ（styles/global.css の --safe-top）
     const top = parseFloat(getComputedStyle(toc).top) || 0;
     if (head) toc.classList.toggle('stuck', head.getBoundingClientRect().top < top);
     if (!links.length) return;

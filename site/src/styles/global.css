@@ -73,6 +73,10 @@
   --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Hiragino Maru Gothic ProN", var(--font);
   --font-num: "Fredoka Num", var(--font-display);
+  /* 画面の上で端末やアプリに覆われる高さ。上に貼り付くもの・全面に開くものはこの下に置く。
+     X のアプリの中のブラウザは env(safe-area-inset-top) を実際に覆うステータスバー（約59pt）より約39pt 高く知らせるので、
+     ステータスバーの高さ（62px）までに抑える。ふつうのブラウザでは 0 */
+  --safe-top: min(env(safe-area-inset-top, 0px), 62px);
 }
 /* ダーク（ヘッダーのボタンで選んだときだけ。はじめは端末の設定に関係なくライトで表示する） */
 :root[data-theme="dark"] {
@@ -253,7 +257,7 @@ small, .small { font-size: 0.875rem; }
 .site-menu::backdrop { background: rgb(15 19 48 / 0.4); }
 .menu-in {
   min-height: 100%; display: flex; flex-direction: column; gap: 14px;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(28px + env(safe-area-inset-bottom, 0px));
+  padding: calc(12px + var(--safe-top)) 16px calc(28px + env(safe-area-inset-bottom, 0px));
 }
 .menu-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .menu-h { margin: 0; font-size: 1.15rem; }
@@ -704,25 +708,16 @@ mark { background: var(--sky); color: inherit; box-shadow: inset 0 -2px var(--po
    続きがある側の端をぼかす（地の色ごとぼかすと下の本文が透けるので、ぼかすのはリンクの並びだけ）。
    上に貼り付いたら（scripts/toc.ts の stuck）、リンクの上に何のページか（区分・名前・判定など）の1行（.toc-head）を出す。
    その1行の高さだけ下の余白を負にして、本文の位置は変えない（目次が下の本文に重なるだけで、本文はずれない）。
-   貼り付く位置（--toc-top）は、アプリの中のブラウザでアプリが上を覆うと知らせる高さ（env(safe-area-inset-top)）から決める。
-   X は、ステータスバーと X の上のバー（約39pt）の高さを知らせ、スクロールしてバーを隠したあとも同じ高さを知らせたままにする。
-   ページからはバーが出ているか分からないので、ステータスバーより高い（62px を超える）ときは、目次の上の余白と何のページかの1行のぶん（40px）だけ
-   上に貼り付く。バーが隠れているときはステータスバーのすぐ下に来て、バーが出ているときはその1行だけがバーの下に入り、リンクは隠れない。
-   ふつうのブラウザ（0）やステータスバーだけ（62px まで）のときは、知らせた高さのとおりに貼り付く。
-   貼り付いた目次の上から画面の上までは目次の地の色で埋め、本文が透けて見えないようにする。
-   基本計画の本文のスマホの幅で貼り付く行（pages/21-seiki-vision/kihon/index.astro の .hb-bar）も、同じ位置に貼り付く */
+   端末やアプリに覆われる高さ（--safe-top）の下に貼り付き、その上から画面の上までは目次の地の色で埋め、本文が透けて見えないようにする */
 .toc-mark { height: 1px; margin-top: 17px; }
-html:has(.toc, .hb-bar) {
-  --toc-head: 32px;
-  --toc-top: max(min(env(safe-area-inset-top, 0px), 62px), calc(env(safe-area-inset-top, 0px) - 8px - var(--toc-head)));
-}
 .toc {
-  position: sticky; top: var(--toc-top); z-index: 20;
+  --toc-head: 32px;
+  position: sticky; top: var(--safe-top); z-index: 20;
   margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 2px solid var(--hair);
 }
 /* 貼り付くまでは地を塗らない（地の波の上に目次の箱が浮いて見えないように）。貼り付いたかはスクリプトでしか分からないので、スクリプトが動かないときは塗ったまま */
 :root.js .toc:not(.stuck) { background: none; }
-.toc.stuck::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--toc-top); background: var(--bg); }
+.toc.stuck::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--safe-top); background: var(--bg); }
 .toc-head { display: flex; align-items: center; gap: 8px; height: 0; overflow: hidden; visibility: hidden; }
 .toc.stuck { margin-bottom: calc(-1 * var(--toc-head)); }
 .toc.stuck .toc-head { height: var(--toc-head); visibility: visible; }
@@ -754,9 +749,9 @@ html:has(.toc, .hb-bar) {
 .toc + section > h2:first-child { margin-top: 1.2em; }
 /* # の行き先と、Tab でフォーカスした要素は、貼り付いた目次（何のページかの1行とリンク）の下に出す（WCAG 2.4.11）。
    目次のあるページはページ全体の scroll-padding で空ける（行き先の scroll-margin と足し合わされるので、そちらは付けない）。
-   アプリの中のブラウザで目次が下に貼り付くぶん（--toc-top）も空ける。
+   目次が端末やアプリに覆われる高さの下に貼り付くぶん（--safe-top）も空ける。
    目次の無いページの # の行き先は、前のとおり行き先の側で空ける */
-html:has(.toc) { scroll-padding-top: calc(104px + var(--toc-top)); }
+html:has(.toc) { scroll-padding-top: calc(104px + var(--safe-top)); }
 html:not(:has(.toc)) :is(.anchor, [id^="seika-"], [id^="shuyou-"]) { scroll-margin-top: 104px; }
 
 

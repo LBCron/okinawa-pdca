@@ -13,7 +13,7 @@ const now = document.querySelector<HTMLElement>('.hb-now');
 const bar = document.querySelector<HTMLElement>('.hb-bar');
 const barMark = document.querySelector<HTMLElement>('.hb-bar-mark');
 // # のリンクで遠くへ一度に跳んでも決められるよう、スクロールのたびに位置を見る（scripts/toc.ts と同じ）
-// 行の貼り付く位置（画面の上からの px）。ふつうは 0 で、アプリの中のブラウザではアプリが上を覆うと知らせる高さから決まる（styles/global.css の --toc-top）
+// 行の貼り付く位置（画面の上からの px）。ふつうは 0 で、スマホでは端末やアプリに覆われる高さ（styles/global.css の --safe-top）
 const barTop = () => (bar && parseFloat(getComputedStyle(bar).top)) || 0;
 const stick = () => bar?.classList.toggle('stuck', !!barMark && barMark.getBoundingClientRect().top < barTop());
 if (nav && open) {
