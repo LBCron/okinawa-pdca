@@ -24,7 +24,7 @@
 | ルートディレクトリ | `site` |
 | ビルドコマンド | `npm run build`（`astro check` で型を確かめてから書き出す。型の誤りがあると止まる） |
 | デプロイコマンド | `npx wrangler deploy` |
-| Node | `site/.node-version`（24）。読まれないときは環境変数 `NODE_VERSION=24` |
+| Node | `site/.node-version`（26）。読まれないときは環境変数 `NODE_VERSION=26` |
 | ビルドキャッシュ | 有効（プロジェクトの Settings → Build → Build cache。下を参照） |
 
 - ビルドは `../data/extracted` と `../data/reference` を読むので、リポジトリ全体がチェックアウトされている必要がある（Workers Builds はリポジトリ全体を取得する）。
@@ -46,4 +46,4 @@
 
 ## 5. 手元で確かめる
 
-`_headers`・`_redirects`・Worker は、Astro だけの `make dev`・`make shot` では効かない。`make build` のあと、`site` で `npx wrangler dev` を動かして確かめる（Alpine の `site` コンテナでは動かないので `node:24-slim` で動かす。`site/.wrangler/` に作業用のファイルができる）。
+`_headers`・`_redirects`・Worker は、Astro だけの `make dev`・`make shot` では効かない。`make build` のあと、`site` で `npx wrangler dev` を動かして確かめる（Alpine の `site` コンテナでは動かないので `node:26-slim` で動かす。`site/.wrangler/` に作業用のファイルができる）。

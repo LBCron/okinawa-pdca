@@ -14,7 +14,7 @@ services:
   # --ignore-lock: Astro のロックファイル（site/.astro/dev.json）はコンテナの中のプロセス番号を記録し、止めると残る。
   # 次のコンテナでも同じ番号になるため、自分を動いているサーバーと取り違えて起動を断る。二重起動はポートで防げるので使わない
   site:
-    image: node:24-alpine
+    image: node:26-alpine
     network_mode: bridge
     volumes:
       - .:/work
