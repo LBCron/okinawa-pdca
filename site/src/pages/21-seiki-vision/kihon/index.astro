@@ -76,7 +76,7 @@ const ld = planTextLd({ ...meta, path: KIHON_KEIKAKU.href, plan: { name: KIHON_K
         <h1>{KIHON_KEIKAKU.name}の本文</h1>
         <p class="lead">
           沖縄県が{KIHON_KEIKAKU.published}に策定した、{KIHON_KEIKAKU.period}の沖縄振興の計画です。沖縄県PDCAの施策と主な取組は、この計画の基本施策（第4章）を実施計画で具体化したものです。
-          県の PDF の本文を全部このページに載せているので、ブラウザのページ内検索（パソコンは Ctrl+F・⌘F）で全文から探せます。基本施策と施策の見出しからは、このサイトのその進み具合のページへ移れます。
+          基本施策と施策の見出しからは、このサイトのその進み具合のページへ移れます。
         </p>
         <p class="small secondary hb-src">{src && <ExtLink href={src.href}>{src.label}（PDF）</ExtLink>}。「*」の付いた言葉は、県の資料編に用語の説明があります。</p>
       </header>
@@ -183,9 +183,11 @@ const ld = planTextLd({ ...meta, path: KIHON_KEIKAKU.href, plan: { name: KIHON_K
     .hb { grid-template-columns: minmax(0, 1fr); margin-top: 8px; }
     .hb-nav { position: static; max-height: none; padding: 0; margin-bottom: 16px; }
     :global(:root.js) .hb-bar {
-      display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+      display: flex; align-items: center; gap: 10px; position: sticky; top: var(--safe-top); z-index: 20;
       margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 2px solid var(--hair);
     }
+    /* 貼り付いた行の上から画面の上までを地の色で埋めるのは、ページ内の目次と同じ（styles/global.css の .toc） */
+    .hb-bar.stuck::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--safe-top); background: var(--bg); }
     .hb-bar:not(.stuck) :global(.menu-open) { visibility: hidden; }
     .hb-open {
       flex: none; font: inherit; font-family: var(--font-display); font-size: 0.9375rem; font-weight: 700; color: var(--ink); cursor: pointer;
@@ -195,13 +197,13 @@ const ld = planTextLd({ ...meta, path: KIHON_KEIKAKU.href, plan: { name: KIHON_K
     :global(:root.js) .hb-nav:not(.open) { display: none; }
     :global(:root.js) .hb-nav.open {
       position: fixed; inset: 0; z-index: 60; max-height: none; overflow-y: auto; margin: 0;
-      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 32px; background: var(--paper); font-size: 0.9375rem;
+      padding: calc(12px + var(--safe-top)) 16px 32px; background: var(--paper); font-size: 0.9375rem;
     }
     :global(:root.js) .hb-nav.open .hb-close {
       display: inline-flex; flex: none; font: inherit; font-family: var(--font-display); font-weight: 700; color: var(--ink); cursor: pointer;
       padding: 4px 14px; min-height: 38px; border: 2px solid var(--line); border-radius: 999px; background: var(--paper);
     }
-    .hb-h { scroll-margin-top: 64px; }
+    .hb-h { scroll-margin-top: calc(64px + var(--safe-top)); }
   }
   @media (max-width: 560px) {
     .hb-body { padding: 20px 16px 24px; }
