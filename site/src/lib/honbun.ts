@@ -80,7 +80,7 @@ export const honbunMdPath = (c: HonbunChapter) => `${KIHON_KEIKAKU.href}${honbun
 export const mdText = (s: string) =>
   s.replace(/[\\`*_[\]<]/g, '\\$&').replace(/^([#>+-])/, '\\$1').replace(/^(\d+)([.)])/, '$1\\$2');
 
-// 見出しの段は # の数に（章が #）。印字のページが変わったかたまりの前に、PDF のそのページへのリンクを置く
+// 見出しの段は # の数に（章が #）。印字のページは入れない（読むのに要らず、文の流れを切るため。出典の PDF は頭に書く）
 export function honbunMarkdown(c: HonbunChapter): string {
   const src = planSourceLink('kihon', c.head.source);
   const pdfPage = (page: number) => planSourceLink('kihon', c.head.source, page)?.href ?? '';
@@ -89,15 +89,12 @@ export function honbunMarkdown(c: HonbunChapter): string {
     [
       `${KIHON_KEIKAKU.name}（沖縄県、${KIHON_KEIKAKU.published}策定。計画の期間は${KIHON_KEIKAKU.period}）の本文のうち「${mdText(headingText(c.head))}」です。`,
       `県の PDF（[${src?.label}](${src?.href})）の文字を、非公式サイト「おきなわ、みらい、いま」（Code for Okinawa）が読み取りました。図とふりがなは省いています。`,
-      '「〔12ページ〕」は印字のページで、リンク先は PDF のそのページです。「\\*」の付いた言葉は、県の資料編に用語の説明があります。',
+      '「\\*」の付いた言葉は、県の資料編に用語の説明があります。',
       '本文の著作権は沖縄県にあります。引用するときは PDF で確かめてください。',
       `Web のページ: ${absUrl(`${KIHON_KEIKAKU.href}#${honbunAnchor(c.head.id)}`)}`,
     ].map((l) => `> ${l}`).join('\n>\n'),
   ];
-  let lastPage = 0;
   for (const b of [c.head, ...c.blocks]) {
-    if (b.page !== lastPage) out.push(`[〔${printedPage(b)}〕](${pdfPage(b.page)})`);
-    lastPage = b.page;
     if (b.kind === 'h') {
       if (b !== c.head) out.push(`${'#'.repeat(b.level)} ${mdText(headingText(b))}`);
       const link = honbunPdcaLink(b);

@@ -52,7 +52,7 @@ test('mdText: 本文の文字を Markdown の書式として読ませない', ()
   assert.equal(mdText('４つの課題'), '４つの課題');
 });
 
-test('章ごとの Markdown: 章が #、見出しの段は # の数。本文の段落を全部入れ、ページの頭に PDF へのリンクを置く', () => {
+test('章ごとの Markdown: 章が #、見出しの段は # の数。印字のページは入れない', () => {
   const chapters = honbunChapters();
   assert.equal(new Set(chapters.map(honbunMdPath)).size, chapters.length);
   assert.equal(honbunMdPath(chapters[0]), '/21-seiki-vision/kihon/hajimeni.md');
@@ -64,11 +64,10 @@ test('章ごとの Markdown: 章が #、見出しの段は # の数。本文の�
     assert.equal(lines.filter((l) => /^# /.test(l)).length, 1, c.head.id);
     const hs = c.blocks.filter((b) => b.kind === 'h');
     assert.equal(lines.filter((l) => /^#{2,5} /.test(l)).length, hs.length, c.head.id);
-    assert.equal(lines.filter((l) => /^\[〔/.test(l)).length, new Set([c.head, ...c.blocks].map((b) => b.page)).size, c.head.id);
+    assert.ok(!md.includes('〔'), c.head.id);
     assert.ok(!md.includes('undefined'));
   }
   const md = honbunMarkdown(chapters.find((c) => c.head.id === '4')!);
   assert.ok(md.includes('\n##### ① '));
   assert.ok(md.includes(`(${SITE.url}shisaku/1-1-a-1/)`));
-  assert.match(md, /\[〔31ページ〕\]\(https:\/\/www\.pref\.okinawa\.jp\/.+\.pdf#page=39\)/);
 });

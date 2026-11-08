@@ -140,7 +140,7 @@ export function llmsTxt(plan: { name: string; href: string; period: string; chap
     '',
     `## ${plan.name}の本文`,
     '',
-    `県の基本計画（${plan.period}）の本文を章ごとに Markdown にしたもの。段落の前に印字のページと PDF のそのページへのリンクがあります。`,
+    `県の基本計画（${plan.period}）の本文を章ごとに Markdown にしたもの。`,
     '',
     link(plan.href, '全文（HTML の1ページ）'),
     ...plan.chapters.map((p) => link(p.path, p.title)),
