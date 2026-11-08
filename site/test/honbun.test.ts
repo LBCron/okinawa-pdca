@@ -2,7 +2,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { honbunChapters, honbunHrefOf, honbunAnchor, honbunMarkdown, honbunMdPath, headingTag, headingText, headingTree, mdText, splitNotes } from '../src/lib/honbun.ts';
-import { SITE } from '../src/lib/links.ts';
 import { load, getKihonList, getShisakuList } from '../src/lib/data.ts';
 import type { HonbunHeading } from '../src/lib/types.ts';
 
@@ -52,7 +51,7 @@ test('mdText: 本文の文字を Markdown の書式として読ませない', ()
   assert.equal(mdText('４つの課題'), '４つの課題');
 });
 
-test('章ごとの Markdown: 章が #、見出しの段は # の数。印字のページは入れない', () => {
+test('章ごとの Markdown: 章が #、見出しの段は # の数。印字のページと沖縄県PDCA へのリンクは入れない', () => {
   const chapters = honbunChapters();
   assert.equal(new Set(chapters.map(honbunMdPath)).size, chapters.length);
   assert.equal(honbunMdPath(chapters[0]), '/21-seiki-vision/kihon/hajimeni.md');
@@ -64,10 +63,9 @@ test('章ごとの Markdown: 章が #、見出しの段は # の数。印字の�
     assert.equal(lines.filter((l) => /^# /.test(l)).length, 1, c.head.id);
     const hs = c.blocks.filter((b) => b.kind === 'h');
     assert.equal(lines.filter((l) => /^#{2,5} /.test(l)).length, hs.length, c.head.id);
-    assert.ok(!md.includes('〔'), c.head.id);
+    assert.ok(!md.includes('〔') && !md.includes('沖縄県PDCA）]('), c.head.id);
     assert.ok(!md.includes('undefined'));
   }
   const md = honbunMarkdown(chapters.find((c) => c.head.id === '4')!);
   assert.ok(md.includes('\n##### ① '));
-  assert.ok(md.includes(`(${SITE.url}shisaku/1-1-a-1/)`));
 });

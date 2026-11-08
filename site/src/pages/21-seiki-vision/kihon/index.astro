@@ -10,7 +10,7 @@ import Base from '../../../layouts/Base.astro';
 import ExtLink from '../../../components/ExtLink.astro';
 import MenuButton from '../../../components/MenuButton.astro';
 import {
-  KIHON_KEIKAKU, honbunChapters, honbunAnchor, honbunMdPath, honbunPdcaLink, headingTag, headingText, headingTree, printedPage, splitNotes, type HonbunNode,
+  KIHON_KEIKAKU, honbunChapters, honbunAnchor, honbunMdPath, headingTag, headingText, headingTree, printedPage, splitNotes, type HonbunNode,
 } from '../../../lib/honbun.ts';
 import { honbunMeta } from '../../../lib/describe.ts';
 import { planSourceLink } from '../../../lib/plans.ts';
@@ -34,6 +34,11 @@ for (const b of chapters.flatMap((c) => [c.head, ...c.blocks])) {
 }
 // 箇条（「① …」「1) …」）の段落は、2行目以降を印の後ろにそろえる（県の PDF と同じぶら下げ）
 const LIST_ITEM = /^([①-⑳]|\d+\))/;
+// 沖縄県PDCA のページ（基本施策・施策）。施策展開のページは無いので付けない
+const pdcaLink = (h: HonbunHeading) =>
+  h.pdca && h.level === 3 ? { href: `/kihon/${h.pdca}/`, label: 'この基本施策の進み具合' }
+  : h.pdca && h.level === 5 ? { href: `/shisaku/${h.pdca}/`, label: 'この施策の進み具合' }
+  : null;
 // 構造化データ。もとにした県の計画（PDF）と計画の期間を書く
 const ld = planTextLd({ ...meta, path: KIHON_KEIKAKU.href, plan: { name: KIHON_KEIKAKU.name, url: src?.href ?? '', fy: KIHON_KEIKAKU.fy, date: KIHON_KEIKAKU.date } });
 ---
@@ -83,7 +88,7 @@ const ld = planTextLd({ ...meta, path: KIHON_KEIKAKU.href, plan: { name: KIHON_K
               {pageMarks.has(b) && <ExtLink class="hb-pg" href={pageHref(b.page)} title={`PDF の ${b.page}ページ目`}>{printedPage(b)}</ExtLink>}
               {b.kind === 'h' ? (() => {
                 const Tag = headingTag(b.level);
-                const link = honbunPdcaLink(b);
+                const link = pdcaLink(b);
                 return (
                   <>
                     <Tag id={honbunAnchor(b.id)} class:list={['hb-h', `lv${b.level}`]}><a class="hb-hlink" href={`#${honbunAnchor(b.id)}`}>{b.mark && <span class="hb-mark">{b.level === 1 ? `第${b.mark}章` : b.mark}</span>}{b.title}</a></Tag>

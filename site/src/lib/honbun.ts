@@ -36,12 +36,6 @@ const pdcaHrefs = once(() => {
 });
 export const honbunHrefOf = (pdcaId: string) => pdcaHrefs().get(pdcaId);
 
-// 沖縄県PDCA のページ（基本施策・施策）。施策展開のページは無いので付けない
-export const honbunPdcaLink = (h: HonbunHeading) =>
-  h.pdca && h.level === 3 ? { href: `/kihon/${h.pdca}/`, label: 'この基本施策の進み具合' }
-  : h.pdca && h.level === 5 ? { href: `/shisaku/${h.pdca}/`, label: 'この施策の進み具合' }
-  : null;
-
 // 段落の頭に出す印字のページ（「はじめに」には印字が無いので PDF のページ）
 export const printedPage = (b: { page: number; printed?: number }) => (b.printed ? `${b.printed}ページ` : `PDFの${b.page}ページ`);
 
@@ -80,7 +74,7 @@ export const honbunMdPath = (c: HonbunChapter) => `${KIHON_KEIKAKU.href}${honbun
 export const mdText = (s: string) =>
   s.replace(/[\\`*_[\]<]/g, '\\$&').replace(/^([#>+-])/, '\\$1').replace(/^(\d+)([.)])/, '$1\\$2');
 
-// 見出しの段は # の数に（章が #）。印字のページは入れない（読むのに要らず、文の流れを切るため。出典の PDF は頭に書く）
+// 見出しの段は # の数に（章が #）。本文だけにし、印字のページと沖縄県PDCA のページへのリンクは入れない（出典の PDF は頭に書く）
 export function honbunMarkdown(c: HonbunChapter): string {
   const src = planSourceLink('kihon', c.head.source);
   const pdfPage = (page: number) => planSourceLink('kihon', c.head.source, page)?.href ?? '';
@@ -97,8 +91,6 @@ export function honbunMarkdown(c: HonbunChapter): string {
   for (const b of [c.head, ...c.blocks]) {
     if (b.kind === 'h') {
       if (b !== c.head) out.push(`${'#'.repeat(b.level)} ${mdText(headingText(b))}`);
-      const link = honbunPdcaLink(b);
-      if (link) out.push(`[${link.label}（沖縄県PDCA）](${absUrl(link.href)})`);
     } else if (b.kind === 'label') out.push(`**${mdText(b.text)}**`);
     else if (b.kind === 'fig') out.push(`（図は省いています。[PDF の${printedPage(b)}](${pdfPage(b.page)})）`);
     else out.push(mdText(b.text));
